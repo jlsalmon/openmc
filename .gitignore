@@ -54,6 +54,7 @@ src/CMakeFiles/
 src/bin/
 src/cmake_install.cmake
 src/install_manifest.txt
+cmake-build-debug/
 
 # Nuclear data
 scripts/nndc
@@ -105,3 +106,5 @@ htmlcov
 
 #Dynamic Library
 *.dylib
+
+

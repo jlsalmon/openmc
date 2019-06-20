@@ -28,6 +28,7 @@ extern bool check_overlaps;           //!< check overlaps in geometry?
 extern bool confidence_intervals;     //!< use confidence intervals for results?
 extern bool create_fission_neutrons;  //!< create fission neutrons (fixed source)?
 extern "C" bool dagmc;                //!< indicator of DAGMC geometry
+extern "C" bool optix;                //!< indicator of OptiX geometry
 extern "C" bool entropy_on;           //!< calculate Shannon entropy?
 extern bool legendre_to_tabular;      //!< convert Legendre distributions to tabular?
 extern bool output_summary;           //!< write summary.h5?

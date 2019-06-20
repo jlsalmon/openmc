@@ -20,6 +20,8 @@
 #include "openmc/tallies/filter.h"
 #include "openmc/tallies/filter_distribcell.h"
 
+#include "openmc/optix/optix_geometry.h"
+#include "openmc/optix/optix_renderer.h"
 
 namespace openmc {
 
@@ -31,6 +33,17 @@ void read_geometry_xml()
     return;
   }
 #endif
+
+  if (settings::optix) {
+
+    auto *geometry = new OptiXGeometry();
+    geometry->load("geometry.obj");
+
+    // auto *renderer = new OptiXRenderer();
+    // renderer->render();
+
+    return;
+  }
 
   // Display output message
   write_message("Reading geometry XML file...", 5);

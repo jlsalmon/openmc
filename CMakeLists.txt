@@ -38,6 +38,185 @@ if(dagmc)
   link_directories(${DAGMC_LIBRARY_DIRS})
 endif()
 
+
+# For Xcode 5, gcc is actually clang, so we have to tell CUDA to treat the compiler as
+# clang, so that it doesn't mistake it for something else.
+if(USING_CLANG_C)
+  set(CUDA_HOST_COMPILER "clang" CACHE FILEPATH "Host side compiler used by NVCC")
+endif()
+
+find_package(CUDA 7.5 REQUIRED)
+find_package(OpenGL REQUIRED)
+
+# Present the CUDA_64_BIT_DEVICE_CODE on the default set of options.
+mark_as_advanced(CLEAR CUDA_64_BIT_DEVICE_CODE)
+
+
+# Add some useful default arguments to the nvcc flags.  This is an example of how we use
+# PASSED_FIRST_CONFIGURE.  Once you have configured, this variable is TRUE and following
+# block of code will not be executed leaving you free to edit the values as much as you
+# wish from the GUI or from ccmake.
+if(NOT PASSED_FIRST_CONFIGURE)
+
+  list(APPEND default_nvcc_flags "--use_fast_math" "-arch sm_30" "-lineinfo")
+
+  if (CUDA_VERSION VERSION_LESS "3.0")
+    list(APPEND default_nvcc_flags "--keep")
+  endif()
+
+  if( APPLE )
+    # Undef'ing __BLOCKS__ for OSX builds.  This is due to a name clash between OSX 10.6
+    # C headers and CUDA headers
+    list(APPEND default_nvcc_flags "-U__BLOCKS__")
+  endif()
+
+  # Append to nvcc flags
+  foreach(flag IN LISTS default_nvcc_flags)
+    list(FIND CUDA_NVCC_FLAGS ${flag} index)
+    if(index EQUAL -1)
+      list(APPEND CUDA_NVCC_FLAGS ${flag})
+      set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE LIST "Semi-colon delimit multiple arguments." FORCE)
+    endif()
+  endforeach(flag)
+
+endif(NOT PASSED_FIRST_CONFIGURE)
+
+# Add required nvcc flag for callable programs under CUDA 8
+if (CUDA_VERSION VERSION_GREATER "7.5")
+  set(flag "--keep-device-functions")
+  list(FIND CUDA_NVCC_FLAGS ${flag} index)
+  if(index EQUAL -1)
+    list(APPEND CUDA_NVCC_FLAGS ${flag})
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE LIST "Semi-colon delimit multiple arguments." FORCE)
+  endif()
+endif()
+
+# Create a flag for mac which will allow apps to add the local cuda toolkit
+# install path to the app's rpath.
+if( APPLE )
+  set( CUDA_TOOLKIT_RPATH_FLAG "-Wl,-rpath,${CUDA_TOOLKIT_ROOT_DIR}/lib" )
+endif()
+
+
+find_package(OptiX REQUIRED)
+include_directories(
+        "${OptiX_INCLUDE}"
+)
+
+##################################################################
+# SUtil compilation
+
+set(SAMPLES_PTX_DIR "${CMAKE_BINARY_DIR}/lib/ptx")
+set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+
+set(CUDA_GENERATED_OUTPUT_DIR ${SAMPLES_PTX_DIR})
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/sampleConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/sampleConfig.h @ONLY)
+
+# Path to sutil.h that all the samples need
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/sutil
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${OptiX_INCLUDE}/optixu
+        ${CMAKE_CURRENT_BINARY_DIR}
+        ${CUDA_INCLUDE_DIRS} )
+
+
+include(FindSUtilGLUT)
+
+set(SAMPLES_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/device_include)
+set(SAMPLES_CUDA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cuda)
+
+##################################################################
+# IMGUI compilation
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/support )
+#add_subdirectory( support/imgui )
+
+##################################################################
+# GLFW compilation
+#set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+#set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+#set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+#add_subdirectory( support/glfw )
+
+#########################################################
+# OPTIX_add_sample_executable
+#
+# Convience function for adding samples to the code.  You can copy the contents of this
+# funtion into your individual project if you wish to customize the behavior.  Note that
+# in CMake, functions have their own scope, whereas macros use the scope of the caller.
+function(OPTIX_add_sample_executable target_name)
+
+  # These calls will group PTX and CUDA files into their own directories in the Visual
+  # Studio projects.
+#  source_group("PTX Files"  REGULAR_EXPRESSION ".+\\.ptx$")
+#  source_group("CUDA Files" REGULAR_EXPRESSION ".+\\.cu$")
+
+  # Separate the sources from the CMake and CUDA options fed to the macro.  This code
+  # comes from the CUDA_COMPILE_PTX macro found in FindCUDA.cmake.  We are copying the
+  # code here, so that we can use our own name for the target.  target_name is used in the
+  # creation of the output file names, and we want this to be unique for each target in
+  # the SDK.
+  CUDA_GET_SOURCES_AND_OPTIONS(source_files cmake_options options ${ARGN})
+
+  # Create the rules to build the PTX from the CUDA files.
+  CUDA_WRAP_SRCS( ${target_name} PTX generated_files ${source_files} ${cmake_options}
+          OPTIONS ${options} )
+
+  # Here is where we create the rule to make the executable.  We define a target name and
+  # list all the source files used to create the target.  In addition we also pass along
+  # the cmake_options parsed out of the arguments.
+#  add_executable(${target_name}
+#          ${source_files}
+#          ${generated_files}
+#          ${cmake_options}
+#          )
+
+  # Most of the samples link against sutil, optix, and glfw.  Here is the
+  # rule that specifies this linkage.
+#  target_link_libraries( ${target_name}
+#          sutil_sdk
+#          optix
+#          glfw
+#          imgui
+#          ${OPENGL_gl_LIBRARY}
+#          ${optix_rpath}
+#          )
+#  if(USING_GNU_CXX)
+#    target_link_libraries( ${target_name} m ) # Explicitly link against math library (C samples don't do that by default)
+#  endif()
+endfunction()
+
+add_subdirectory(sutil)
+
+# Compile the cuda files to ptx.  Note that this will ignore all of the non CUDA
+# files.
+set(sources
+        src/optix/mesh.cu
+        src/optix/contains.cu
+        src/optix/accum_camera.cu
+        src/optix/constantbg.cu
+        src/optix/normal_shader.cu
+        src/optix/optixGeometryTriangles.cu)
+if(NOT CUDA_NVRTC_ENABLED)
+  CUDA_COMPILE_PTX(ptx_files ${sources})
+endif()
+
+
+#target_link_libraries( ${target_name}
+##        sutil_sdk
+#        optix
+##        glfw
+##        imgui
+##        ${OPENGL_gl_LIBRARY}
+##        ${optix_rpath}
+#        )
+
+# Now that everything is done, indicate that we have finished configuring at least once.
+# We use this variable to set certain defaults only on the first pass, so that we don't
+# continually set them over and over again.
+set(PASSED_FIRST_CONFIGURE ON CACHE INTERNAL "Already Configured once?")
+
+
 #===============================================================================
 # HDF5 for binary output
 #===============================================================================
@@ -233,6 +412,11 @@ add_library(libopenmc SHARED
   src/tallies/tally.cpp
   src/tallies/tally_scoring.cpp
   src/tallies/trigger.cpp
+  src/optix/optix_cell.cpp
+  src/optix/optix_surface.cpp
+  src/optix/optix_geometry.cpp
+  src/optix/optix_renderer.cpp
+  src/optix/optix_mesh.cpp
   src/timer.cpp
   src/thermal.cpp
   src/track_output.cpp
@@ -240,7 +424,7 @@ add_library(libopenmc SHARED
   src/volume_calc.cpp
   src/wmp.cpp
   src/xml_interface.cpp
-  src/xsdata.cpp)
+  src/xsdata.cpp ${ptx_files})
 
 set_target_properties(libopenmc PROPERTIES
   OUTPUT_NAME openmc)
@@ -271,7 +455,7 @@ endif()
 # target_link_libraries treats any arguments starting with - but not -l as
 # linker flags. Thus, we can pass both linker flags and libraries together.
 target_link_libraries(libopenmc ${ldflags} ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES}
-                      pugixml faddeeva xtensor)
+                      pugixml faddeeva xtensor optix sutil_sdk)
 
 if(dagmc)
   target_compile_definitions(libopenmc PRIVATE DAGMC)

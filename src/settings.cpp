@@ -43,6 +43,7 @@ bool check_overlaps          {false};
 bool confidence_intervals    {false};
 bool create_fission_neutrons {true};
 bool dagmc                   {false};
+bool optix                   {false};
 bool entropy_on              {false};
 bool legendre_to_tabular     {true};
 bool output_summary          {true};
@@ -217,6 +218,11 @@ void read_settings_xml()
   // DAGMC geometry check
   if (check_for_node(root, "dagmc")) {
     dagmc = get_node_value_bool(root, "dagmc");
+  }
+
+  // OptiX geometry check
+  if (check_for_node(root, "optix")) {
+    optix = get_node_value_bool(root, "optix");
   }
 
 #ifndef DAGMC
