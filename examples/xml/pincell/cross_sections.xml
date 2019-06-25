@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cross_sections>
+    <library materials="Ac225" path="Ac225.h5" type="neutron" />
+    <library materials="Ac226" path="Ac226.h5" type="neutron" />
+    <library materials="Ac227" path="Ac227.h5" type="neutron" />
+    <library materials="Ag107" path="Ag107.h5" type="neutron" />
+    <library materials="Ag109" path="Ag109.h5" type="neutron" />
+    <library materials="Ag110_m1" path="Ag110_m1.h5" type="neutron" />
+    <library materials="Ag111" path="Ag111.h5" type="neutron" />
+    <library materials="Al27" path="Al27.h5" type="neutron" />
+    ...
+    <library materials="c_O_in_BeO" path="c_O_in_BeO.h5" type="thermal" />
+    <library materials="c_ortho_D" path="c_ortho_D.h5" type="thermal" />
+    <library materials="c_ortho_H" path="c_ortho_H.h5" type="thermal" />
+    <library materials="c_O_in_UO2" path="c_O_in_UO2.h5" type="thermal" />
+    <library materials="c_para_D" path="c_para_D.h5" type="thermal" />
+    <library materials="c_para_H" path="c_para_H.h5" type="thermal" />
+    <library materials="c_H_in_CH4_solid" path="c_H_in_CH4_solid.h5" type="thermal" />
+    <library materials="c_U_in_UO2" path="c_U_in_UO2.h5" type="thermal" />
+    <library materials="c_Zr_in_ZrH" path="c_Zr_in_ZrH.h5" type="thermal" />
+  </cross_sections>
+

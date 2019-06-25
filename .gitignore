@@ -107,4 +107,8 @@ htmlcov
 #Dynamic Library
 *.dylib
 
-
+tracks/
+*.stl
+*.trelis
+*.blend
+*.blend1

@@ -27,9 +27,9 @@ private:
   void create_context();
   // void load_mesh(const std::string &filename);
 
-  void visit(int index, tinyobj::shape_t shape) override;
+  void visit(int shape_id, tinyobj::shape_t shape) override;
 
-  void visit(int index, float3 normal) override;
+  void visit(int shape_id, int surface_id, float3 normal) override;
 
 public:
   void load(const std::string& filename);

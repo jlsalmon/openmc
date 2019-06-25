@@ -55,14 +55,15 @@ struct MaterialParams
   float               Kr[3];
   float               Ka[3];
   float               exp;
+  long                shape_id;
 
 };
 
 class MeshVisitor
 {
 public:
-  virtual void visit(int index, tinyobj::shape_t shape) = 0;
-  virtual void visit(int index, optix::float3 normal) = 0;
+  virtual void visit(int shape_id, tinyobj::shape_t shape) = 0;
+  virtual void visit(int shape_id, int surface_id, optix::float3 normal) = 0;
 };
 
 //------------------------------------------------------------------------------

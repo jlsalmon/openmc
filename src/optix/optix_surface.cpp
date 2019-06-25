@@ -38,7 +38,7 @@ Direction OptiXSurface::normal(Position r) const {
   // 0->0, 1->3, 2->6, 3->9
   // float3 normal = tet->normals[this->id_ * 3];
 
-  // printf("$$$ surface.normal(): { %f, %f, %f }\n", normal_.x, normal_.y, normal_.z);
+  printf("$$$ surface.normal(): { %f, %f, %f }\n", normal_.x, normal_.y, normal_.z);
   return {normal_.x, normal_.y, normal_.z};
 }
 

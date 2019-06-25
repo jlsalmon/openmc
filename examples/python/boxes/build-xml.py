@@ -60,8 +60,8 @@ z5 = openmc.ZPlane(surface_id=25, z0=7)
 z6 = openmc.ZPlane(surface_id=26, z0=10)
 
 # Set vacuum boundary conditions on outside
-for surface in [x1, x6, y1, y6, z1, z6]:
-    surface.boundary_type = 'vacuum'
+for surface in [x2, x5, y2, y5, z2, z5]:
+    surface.boundary_type = 'reflective'
 
 # Instantiate Cells
 inner_box = openmc.Cell(cell_id=1, name='inner box')

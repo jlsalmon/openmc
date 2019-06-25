@@ -135,7 +135,7 @@ optix::Material createOptiXMaterial(
 {
   optix::Material mat = context->createMaterial();
   mat->setClosestHitProgram( 0u, closest_hit );
-  mat->setAnyHitProgram( 1u, any_hit ) ;
+  mat->setAnyHitProgram( 0u, any_hit ) ;
 
   if( use_textures )
     mat[ "Kd_map"]->setTextureSampler( sutil::loadTexture( context, mat_params.Kd_map, optix::make_float3(mat_params.Kd) ) );
@@ -149,26 +149,28 @@ optix::Material createOptiXMaterial(
   mat[ "Ka"        ]->set3fv( mat_params.Ka );
   mat[ "phong_exp" ]->setFloat( mat_params.exp );
 
+  mat["shape_id"]->setInt(mat_params.shape_id);
+
   return mat;
 }
 
 
 optix::Program createBoundingBoxProgram( optix::Context context )
 {
-  return context->createProgramFromPTXString( sutil::getPtxString( NULL, "triangle_mesh.cu" ), "mesh_bounds" );
+  return context->createProgramFromPTXString( sutil::getPtxString( "cuda_compile_ptx_1", "triangle_mesh.cu" ), "mesh_bounds" );
 }
 
 
 optix::Program createIntersectionProgram( optix::Context context )
 {
-  return context->createProgramFromPTXString( sutil::getPtxString( NULL, "triangle_mesh.cu" ), "mesh_intersect" );
+  return context->createProgramFromPTXString( sutil::getPtxString( "cuda_compile_ptx_1", "triangle_mesh.cu" ), "mesh_intersect" );
 }
 
 
-// optix::Program createAttributesProgram( optix::Context context )
-// {
-//   return context->createProgramFromPTXString( sutil::getPtxString( NULL, "triangle_mesh.cu" ), "mesh_attributes" );
-// }
+optix::Program createAttributesProgram( optix::Context context )
+{
+  return context->createProgramFromPTXString( sutil::getPtxString( "cuda_compile_ptx_1", "triangle_mesh.cu" ), "mesh_attributes" );
+}
 
 
 void translateMeshToOptiX(
@@ -219,6 +221,7 @@ void translateMeshToOptiX(
   }
   else
   {
+    printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>> \n");
     bool have_textures = false;
     for( int32_t i = 0; i < mesh.num_materials; ++i )
       if( !mesh.mat_params[i].Kd_map.empty() )
@@ -246,7 +249,7 @@ void translateMeshToOptiX(
     geom_tri->setTriangleIndices( buffers.tri_indices, RT_FORMAT_UNSIGNED_INT3 );
     geom_tri->setVertices( mesh.num_vertices, buffers.positions, buffers.positions->getFormat() );
     geom_tri->setBuildFlags( RTgeometrybuildflags(0) );
-    // geom_tri->setAttributeProgram( createAttributesProgram( ctx ) );
+    geom_tri->setAttributeProgram( createAttributesProgram( ctx ) );
 
     size_t num_matls = optix_materials.size();
     geom_tri->setMaterialCount( num_matls );
@@ -317,7 +320,7 @@ void loadMesh(
   loader.loadMesh( mesh, load_xform.getData() );
 
   translateMeshToOptiX( mesh, buffers, optix_mesh );
-  printMeshInfo(mesh);
+  // printMeshInfo(mesh);
 
   unmap( buffers, mesh );
 }

@@ -506,6 +506,8 @@ void MeshLoader::Impl::loadMeshOBJ( Mesh& mesh )
 {
   uint32_t vrt_offset = 0;
   uint32_t tri_offset = 0;
+  uint32_t surface_id = 0;
+
   for( std::vector<tinyobj::shape_t>::const_iterator it = m_shapes.begin();
        it < m_shapes.end();
        ++it )
@@ -546,7 +548,7 @@ void MeshLoader::Impl::loadMeshOBJ( Mesh& mesh )
         float y = shape.mesh.positions[3*v+1];
         float z = shape.mesh.positions[3*v+2];
 
-        printf("  face[%ld] v[%ld] = (%f, %f, %f)\n", n, v, x, y, z);
+        // printf("  face[%ld] v[%ld] = (%f, %f, %f)\n", n, v, x, y, z);
 
         if (f == 0) {
           v0 = make_float3(x, y, z);
@@ -563,9 +565,7 @@ void MeshLoader::Impl::loadMeshOBJ( Mesh& mesh )
       // printf("    normal=(%f, %f, %f)\n",
       //        geometric_normal.x, geometric_normal.y, geometric_normal.z);
 
-      int surface_id = shape_id * 12 + n;
-
-      mesh.visitor->visit(surface_id, geometric_normal);
+      mesh.visitor->visit(shape_id, ++surface_id, geometric_normal);
       indexOffset += ngon;
     }
 
@@ -594,6 +594,8 @@ void MeshLoader::Impl::loadMeshOBJ( Mesh& mesh )
     tri_offset += static_cast<uint32_t>(shape.mesh.indices.size()) / 3;
   }
 
+  printf(">>> m_materials.size(): %d\n", m_materials.size());
+
   for( uint64_t i = 0; i < m_materials.size(); ++i )
   {
     MaterialParams mat_params;
@@ -620,6 +622,7 @@ void MeshLoader::Impl::loadMeshOBJ( Mesh& mesh )
 
     mat_params.exp    = m_materials[i].shininess;
 
+    mat_params.shape_id = i;
     mesh.mat_params[i] = mat_params;
   }
 }

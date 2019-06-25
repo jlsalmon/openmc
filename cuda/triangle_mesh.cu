@@ -30,6 +30,7 @@
 #include <optixu/optixu_math_namespace.h>
 #include <optixu/optixu_matrix_namespace.h>
 #include <optixu/optixu_aabb_namespace.h>
+#include <optix_cuda.h>
 #include "intersection_refinement.h"
 
 using namespace optix;
@@ -129,44 +130,44 @@ RT_PROGRAM void mesh_bounds (int primIdx, float result[6])
 
   optix::Aabb* aabb = (optix::Aabb*)result;
   
-  // if(area > 0.0f && !isinf(area)) {
-  //   aabb->m_min = fminf( fminf( v0, v1), v2 );
-  //   aabb->m_max = fmaxf( fmaxf( v0, v1), v2 );
-  // } else {
-  //   aabb->invalidate();
-  // }
+  if(area > 0.0f && !isinf(area)) {
+    aabb->m_min = fminf( fminf( v0, v1), v2 );
+    aabb->m_max = fmaxf( fmaxf( v0, v1), v2 );
+  } else {
+    aabb->invalidate();
+  }
 }
 
 
-// RT_PROGRAM void mesh_attributes()
-// {
-//   const int3   v_idx = index_buffer[ rtGetPrimitiveIndex() ];
-//   const float3 v0    = vertex_buffer[ v_idx.x ];
-//   const float3 v1    = vertex_buffer[ v_idx.y ];
-//   const float3 v2    = vertex_buffer[ v_idx.z ];
-//   const float3 Ng    = cross( v1-v0, v2-v0 );
-//
-//   geometric_normal = Ng;
-//
-//   const float2 barycentrics = rtGetTriangleBarycentrics();
-//
-//   if( normal_buffer.size() == 0 ) {
-//     shading_normal = Ng;
-//   }
-//   else {
-//     shading_normal =
-//         normal_buffer[ v_idx.y ] * barycentrics.x +
-//         normal_buffer[ v_idx.z ] * barycentrics.y +
-//         normal_buffer[ v_idx.x ] * ( 1.0f - barycentrics.x - barycentrics.y );
-//   }
-//
-//   if( texcoord_buffer.size() == 0 ) {
-//     texcoord = make_float3( 0.0f, 0.0f, 0.0f );
-//   } else {
-//     const float2 t0 = texcoord_buffer[ v_idx.x ];
-//     const float2 t1 = texcoord_buffer[ v_idx.y ];
-//     const float2 t2 = texcoord_buffer[ v_idx.z ];
-//     texcoord = make_float3( t1*barycentrics.x + t2*barycentrics.y + t0*(1.0f-barycentrics.x-barycentrics.y) );
-//   }
-// }
+RT_PROGRAM void mesh_attributes()
+{
+  const int3   v_idx = index_buffer[ rtGetPrimitiveIndex() ];
+  const float3 v0    = vertex_buffer[ v_idx.x ];
+  const float3 v1    = vertex_buffer[ v_idx.y ];
+  const float3 v2    = vertex_buffer[ v_idx.z ];
+  const float3 Ng    = cross( v1-v0, v2-v0 );
+
+  geometric_normal = Ng;
+
+  const float2 barycentrics = rtGetTriangleBarycentrics();
+
+  if( normal_buffer.size() == 0 ) {
+    shading_normal = Ng;
+  }
+  else {
+    shading_normal =
+        normal_buffer[ v_idx.y ] * barycentrics.x +
+        normal_buffer[ v_idx.z ] * barycentrics.y +
+        normal_buffer[ v_idx.x ] * ( 1.0f - barycentrics.x - barycentrics.y );
+  }
+
+  if( texcoord_buffer.size() == 0 ) {
+    texcoord = make_float3( 0.0f, 0.0f, 0.0f );
+  } else {
+    const float2 t0 = texcoord_buffer[ v_idx.x ];
+    const float2 t1 = texcoord_buffer[ v_idx.y ];
+    const float2 t2 = texcoord_buffer[ v_idx.z ];
+    texcoord = make_float3( t1*barycentrics.x + t2*barycentrics.y + t0*(1.0f-barycentrics.x-barycentrics.y) );
+  }
+}
 

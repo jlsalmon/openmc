@@ -322,4 +322,9 @@ if __name__ == '__main__':
 
         app = MeshPlotter(root, filename)
         root.deiconify()
-        root.mainloop()
+        while True:
+            try:
+                root.mainloop()
+                break
+            except UnicodeDecodeError:
+                pass

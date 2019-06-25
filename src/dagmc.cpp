@@ -354,6 +354,9 @@ void load_dagmc_geometry()
     model::surface_map[s->id_] = i;
   }
 
+  printf(">>> num cells: %d, num surfaces: %d\n",
+    model::cells.size(), model::surfaces.size());
+
   return;
 }
 

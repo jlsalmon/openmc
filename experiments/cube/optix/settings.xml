@@ -10,7 +10,7 @@
   <!-- Starting source -->
   <source>
     <space type="box">
-      <parameters>-4 -4 -4  4  4  4</parameters>
+      <parameters>-0.1 -0.1 -0.1  0.1  0.1  0.1</parameters>
     </space>
   </source>
 <!--  <track>1 1 1</track>-->

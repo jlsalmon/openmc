@@ -32,56 +32,59 @@ void usageReportCallback(int lvl, const char *tag, const char *msg, void *cbdata
   logger->log(lvl, tag, msg);
 }
 
-void OptiXGeometry::visit(int index, tinyobj::shape_t shape) {
+void OptiXGeometry::visit(int shape_id, tinyobj::shape_t shape) {
   auto *cell = new OptiXCell();
   cell->context = context;
   cell->instance_id_buffer = instance_id_buffer;
   cell->intersection_distance_buffer = intersection_distance_buffer;
   cell->num_hits_buffer = num_hits_buffer;
   // cell->mesh = mesh;
-  cell->id_ = index + 1;
+  cell->id_ = shape_id + 1;
   cell->universe_ = universe_id;
   cell->fill_ = C_NONE;
   model::cells.emplace_back(cell);
-  model::cell_map[cell->id_] = index;
+  model::cell_map[cell->id_] = shape_id;
 
   // Populate the Universe vector and dict
   auto it = model::universe_map.find(universe_id);
   if (it == model::universe_map.end()) {
     model::universes.push_back(std::make_unique<Universe>());
     model::universes.back()->id_ = universe_id;
-    model::universes.back()->cells_.push_back(index);
+    model::universes.back()->cells_.push_back(shape_id);
     model::universe_map[universe_id] = model::universes.size() - 1;
   } else {
-    model::universes[it->second]->cells_.push_back(index);
+    model::universes[it->second]->cells_.push_back(shape_id);
   }
 
   // TODO: Materials
-  if (index == 0) {
+  if (cell->id_ == 1) { // cube
+    cell->material_.push_back(MATERIAL_VOID);
+  }
+  if (cell->id_ == 2) { // bunny
     cell->material_.push_back(model::materials[0]->id_);
   }
 
   printf(">>> cell id=%d\n", cell->id_);
 }
 
-void OptiXGeometry::visit(int index, float3 normal) {
+void OptiXGeometry::visit(int shape_id, int surface_id, float3 normal) {
   auto *surface = new OptiXSurface();
 
   // TODO: how to ensure that OpenMC surface IDs match OptiX primitive indices?
+  // TODO: why do particles leak?
 
-
-  surface->id_ = index;
+  surface->id_ = surface_id;
   surface->normal_ = normal;
 
   // TODO: Boundary condition
-  if (index >= 12) {
+  if (shape_id == 1) {
     surface->bc_ = BC_VACUUM;
   }
 
   model::surfaces.emplace_back(surface);
-  model::surface_map[surface->id_] = index;
+  model::surface_map[surface->id_] = surface_id;
 
-  printf(">>> surface id=%d\n", surface->id_);
+  // printf(">>> surface id=%d\n", surface->id_);
 }
 
 
@@ -93,10 +96,10 @@ void OptiXGeometry::load(const std::string &filename) {
   mesh.context = context;
   mesh.visitor = this;
   mesh.use_tri_api = true;
-  mesh.ignore_mats = true;
+  mesh.ignore_mats = false;
   mesh.closest_hit = context->createProgramFromPTXString(ptx, "closest_hit");
   mesh.any_hit = context->createProgramFromPTXString(ptx, "any_hit");
-  loadMesh( filename, mesh );
+  loadMesh(filename, mesh);
 
   GeometryGroup geometry_group = context->createGeometryGroup();
   geometry_group->addChild(mesh.geom_instance);
@@ -104,19 +107,8 @@ void OptiXGeometry::load(const std::string &filename) {
   context["top_object"]->set(geometry_group);
   context->validate();
 
-
-  int num_shapes = 2;
-  int num_triangles = mesh.num_triangles;
-
-  // Create OpenMC cells and surfaces
-
-  for (int i = 0; i < num_shapes; i++) {
-
-
-    for (int j = 0; j < num_triangles; j++) {
-
-    }
-  }
+  printf(">>> num cells: %d, num surfaces: %d\n",
+         model::cells.size(), model::surfaces.size());
 
   model::root_universe = find_root_universe();
 }
@@ -124,8 +116,8 @@ void OptiXGeometry::load(const std::string &filename) {
 void OptiXGeometry::create_context() {
   write_message("Creating OptiX context...", 5);
 
-#if OPTIX_VERSION / 10000 >= 6
   int rtx = 1;
+#if OPTIX_VERSION / 10000 >= 6
   if (rtGlobalSetAttribute(RT_GLOBAL_ATTRIBUTE_ENABLE_RTX, sizeof(rtx), &rtx) != RT_SUCCESS) {
     printf("Error setting RT_GLOBAL_ATTRIBUTE_ENABLE_RTX!\n");
   } else {

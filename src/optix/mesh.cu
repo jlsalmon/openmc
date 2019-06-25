@@ -7,9 +7,12 @@
 using namespace optix;
 
 struct PerRayData_geometry {
-  int instance_id;
+  int surface_id;
   float intersection_distance;
-  int num_hits;
+  // int num_hits;
+
+  float3 position;
+  bool hit;
 };
 
 rtDeclareVariable(float3, ray_origin, ,);
@@ -19,6 +22,7 @@ rtDeclareVariable(rtObject, top_object, ,);
 rtDeclareVariable(uint2, launch_index, rtLaunchIndex,);
 rtDeclareVariable(PerRayData_geometry, payload, rtPayload,);
 rtDeclareVariable(float, intersection_distance, rtIntersectionDistance,);
+rtDeclareVariable( Ray, ray, rtCurrentRay, );
 rtDeclareVariable(float2, barycentrics, attribute rtTriangleBarycentrics,);
 
 rtBuffer<int, 1> instance_id_buffer;
@@ -31,45 +35,79 @@ RT_PROGRAM void generate_ray() {
   //        ray_origin.x, ray_origin.y, ray_origin.z,
   //        ray_direction.x, ray_direction.y, ray_direction.z);
 
-  optix::Ray ray(ray_origin, ray_direction, 0, scene_epsilon);
+
   PerRayData_geometry payload = {};
+  int closest_surface_id = -1;
+  float closest_intersection_distance = -1;
+  int num_hits = 0;
 
-  rtTrace(top_object, ray, payload);
+  payload.position = ray_origin;
+  payload.hit = true;
 
-  instance_id_buffer[0] = payload.instance_id;
-  intersection_distance_buffer[0] = payload.intersection_distance;
-  num_hits_buffer[0] = payload.num_hits;
+  while (payload.hit) {
+    optix::Ray ray(payload.position, ray_direction, 0, scene_epsilon);
+    rtTrace(top_object, ray, payload);
+
+    if (payload.hit) {
+      num_hits++;
+
+      if (closest_surface_id < 0) { // First closest hit? Store it.
+        closest_surface_id = payload.surface_id;
+        closest_intersection_distance = payload.intersection_distance;
+      }
+    }
+  }
+
+  instance_id_buffer[0] = closest_surface_id;
+  intersection_distance_buffer[0] = closest_intersection_distance;
+  num_hits_buffer[0] = num_hits;
+
+
+  // optix::Ray ray(ray_origin, ray_direction, 0, scene_epsilon);
+  // PerRayData_geometry payload = {};
+  //
+  // rtTrace(top_object, ray, payload);
+  //
+  // instance_id_buffer[0] = payload.surface_id;
+  // intersection_distance_buffer[0] = payload.intersection_distance;
+  // num_hits_buffer[0] = payload.num_hits;
 
   // printf(">>> geometry.generate_ray() { id=%d, dist=%f }\n",
-  //   payload.instance_id, payload.intersection_distance);
+  //   payload.surface_id, payload.intersection_distance);
 }
+
 
 RT_PROGRAM void any_hit() {
-  payload.num_hits++;
-  printf(">>> geometry.any_hit() { num_hits=%d }\n", payload.num_hits);
+  // payload.num_hits++;
+  // rtIgnoreIntersection();
+
+  // TODO: record hit surface and its shape/cell ID from the mat
+
+  // printf(">>> geometry.any_hit() { num_hits=%d }\n", payload.num_hits);
 }
+
 
 RT_PROGRAM void closest_hit() {
-  payload.num_hits++;
+  // payload.num_hits++;
   payload.intersection_distance = intersection_distance;
+  payload.surface_id = rtGetPrimitiveIndex();
+  payload.position = ray.origin + intersection_distance * ray.direction;
+// #if OPTIX_VERSION / 10000 >= 6
+//   payload.surface_id = rtGetPrimitiveIndex();
+  // bool front = rtIsTriangleHitFrontFace();
+  // bool back = rtIsTriangleHitBackFace();
+// #endif
 
-#if OPTIX_VERSION / 10000 >= 6
-  payload.instance_id = rtGetPrimitiveIndex();
-  bool front = rtIsTriangleHitFrontFace();
-  bool back = rtIsTriangleHitBackFace();
-#else
-  payload.instance_id = 0;
-  bool front = false;
-  bool back = false;
-#endif
-
-  // printf(">>> geometry.closest_hit() { id=%d, dist=%f, nhits=%d, front=%d, back=%d }\n",
-  //        payload.instance_id, payload.intersection_distance, payload.num_hits, front, back);
+  // printf(">>> geometry.closest_hit() { id=%d, dist=%f }\n",
+  //        payload.surface_id, payload.intersection_distance);
 }
+
 
 RT_PROGRAM void miss() {
-  printf(">>> geometry.miss()\n");
+  // printf(">>> geometry.miss()\n");
+  payload.hit = false;
 }
+
 
 RT_PROGRAM void exception() {
   printf(">>> geometry.exception() { 0x%X at launch index (%d,%d) }\n",
@@ -77,24 +115,26 @@ RT_PROGRAM void exception() {
 }
 
 
-rtBuffer<float3> vertex_buffer;
-rtBuffer<float3> normal_buffer;
+// rtBuffer<float3> vertex_buffer;
+// rtBuffer<float3> normal_buffer;
 // rtBuffer<float2> texcoord_buffer;
-rtBuffer<int3> index_buffer;
+// rtBuffer<int3> index_buffer;
+// rtBuffer<int3> material_buffer;
 
-rtDeclareVariable(float3, geometric_normal, attribute geometric_normal, );
+
+// rtDeclareVariable(float3, geometric_normal, attribute geometric_normal, );
 // rtDeclareVariable(float3, shading_normal,   attribute shading_normal, );
 
-RT_PROGRAM void triangle_attributes() {
-  // printf("triangle_attributes()\n");
-// #if OPTIX_VERSION / 10000 >= 6
-  const int3 v_idx = index_buffer[rtGetPrimitiveIndex()];
-  const float3 v0 = vertex_buffer[v_idx.x];
-  const float3 v1 = vertex_buffer[v_idx.y];
-  const float3 v2 = vertex_buffer[v_idx.z];
-  const float3 Ng = optix::cross(v1 - v0, v2 - v0);
-
-  geometric_normal = optix::normalize(Ng);
+// RT_PROGRAM void triangle_attributes() {
+//   // printf("triangle_attributes()\n");
+// // #if OPTIX_VERSION / 10000 >= 6
+//   const int3 v_idx = index_buffer[rtGetPrimitiveIndex()];
+//   const float3 v0 = vertex_buffer[v_idx.x];
+//   const float3 v1 = vertex_buffer[v_idx.y];
+//   const float3 v2 = vertex_buffer[v_idx.z];
+//   const float3 Ng = optix::cross(v1 - v0, v2 - v0);
+//
+//   geometric_normal = optix::normalize(Ng);
 
   // barycentrics = rtGetTriangleBarycentrics();
   // // texcoord = make_float3(barycentrics.x, barycentrics.y, 0.0f);
@@ -115,4 +155,4 @@ RT_PROGRAM void triangle_attributes() {
   //   texcoord = make_float3(t1 * barycentrics.x + t2 * barycentrics.y + t0 * (1.0f - barycentrics.x - barycentrics.y));
   // }
 // #endif
-}
+// }
