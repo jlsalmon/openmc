@@ -192,11 +192,10 @@ add_subdirectory(sutil)
 # files.
 set(sources
         src/optix/mesh.cu
-        src/optix/contains.cu
-        src/optix/accum_camera.cu
-        src/optix/constantbg.cu
-        src/optix/normal_shader.cu
-        src/optix/optixGeometryTriangles.cu)
+        src/optix/render/accum_camera.cu
+        src/optix/render/constantbg.cu
+        src/optix/render/normal_shader.cu
+        src/optix/render/optixGeometryTriangles.cu)
 if(NOT CUDA_NVRTC_ENABLED)
   CUDA_COMPILE_PTX(ptx_files ${sources})
 endif()

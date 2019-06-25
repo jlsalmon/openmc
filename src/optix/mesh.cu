@@ -1,9 +1,6 @@
 #include <optix_world.h>
 #include <optix_cuda.h>
 
-#include "common.h"
-#include "helpers.h"
-
 using namespace optix;
 
 struct PerRayData_geometry {

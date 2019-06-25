@@ -112,3 +112,5 @@ tracks/
 *.trelis
 *.blend
 *.blend1
+*.obj
+*.mtl
