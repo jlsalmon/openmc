@@ -8,6 +8,10 @@
 
 #include "openmc/particle.h"
 
+// #include <optix_world.h>
+// #include <optix_cuda.h>
+#include "openmc/cell.h"
+
 
 namespace openmc {
 
@@ -32,7 +36,9 @@ struct BoundaryInfo {
   double distance {INFINITY};   //!< distance to nearest boundary
   int surface_index {0}; //!< if boundary is surface, index in surfaces vector
   int coord_level;   //!< coordinate level after crossing boundary
+#ifndef __CUDA_ARCH__
   std::array<int, 3> lattice_translation {}; //!< which way lattice indices will change
+#endif
 };
 
 //==============================================================================

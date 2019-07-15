@@ -180,7 +180,7 @@ Nuclide::Nuclide(hid_t group, const std::vector<double>& temperature, int i_nucl
   for (auto name : group_names(rxs_group)) {
     if (starts_with(name, "reaction_")) {
       hid_t rx_group = open_group(rxs_group, name.c_str());
-      reactions_.push_back(std::make_unique<Reaction>(rx_group, temps_to_read));
+      reactions_.push_back(new Reaction(rx_group, temps_to_read));
 
       // Check for 0K elastic scattering
       const auto& rx = reactions_.back();
@@ -312,7 +312,7 @@ void Nuclide::create_derived()
 
         // Keep track of fission reactions
         if (t == 0) {
-          fission_rx_.push_back(rx.get());
+          fission_rx_.push_back(rx);
           if (rx->mt_ == N_F) has_partial_fission_ = true;
         }
       }
@@ -823,7 +823,7 @@ void Nuclide::calculate_urr_xs(int i_temp, Particle& p) const
     f = micro.interp_factor;
 
     // Determine inelastic scattering cross section
-    Reaction* rx = reactions_[urr_inelastic_].get();
+    Reaction* rx = reactions_[urr_inelastic_];
     int xs_index = micro.index_grid - rx->xs_[i_temp].threshold;
     if (xs_index >= 0) {
       inelastic = (1. - f) * rx->xs_[i_temp].value[xs_index] +

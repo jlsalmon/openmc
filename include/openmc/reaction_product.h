@@ -10,6 +10,7 @@
 #include "hdf5.h"
 
 #include "openmc/angle_energy.h"
+#include "openmc/secondary_uncorrelated.h"
 #include "openmc/endf.h"
 #include "openmc/particle.h"
 
@@ -50,6 +51,39 @@ public:
   std::unique_ptr<Function1D> yield_; //!< Yield as a function of energy
   std::vector<Tabulated1D> applicability_; //!< Applicability of distribution
   std::vector<Secondary> distribution_; //!< Secondary angle-energy distribution
+};
+
+struct ReactionProduct_ {
+  Particle::Type particle_; //!< Particle type
+  ReactionProduct::EmissionMode emission_mode_; //!< Emission mode
+  double decay_rate_; //!< Decay rate (for delayed neutron precursors) in [1/s]
+  bool is_polynomial_yield; // FIXME: find a better way of handling this on the device
+  Polynomial_ polynomial_yield_; //!< Yield as a function of energy
+  Tabulated1D_ tabulated_1d_yield_;
+  rtBufferId<Tabulated1D_, 1> applicability_; //!< Applicability of distribution
+  unsigned long applicability_size;
+  rtBufferId<UncorrelatedAngleEnergy_, 1> distribution_; //!< Secondary angle-energy distribution
+  AngleEnergy_::Type distribution_type;
+
+  // __device__ __forceinline__ ReactionProduct_() {}
+  //
+  // __device__ __forceinline__ ReactionProduct_(ReactionProduct *r,
+  //                                             bool is_polynomial_yield,
+  //                                             Polynomial_ polynomial_yield_,
+  //                                             Tabulated1D_ tabulated_1d_yield_,
+  //                                             rtBufferId<Tabulated1D_, 1> applicability_,
+  //                                             unsigned long applicability_size,
+  //                                             rtBufferId<UncorrelatedAngleEnergy_, 1> distribution_) {
+  //   particle_ = r->particle_;
+  //   emission_mode_ = r->emission_mode_;
+  //   decay_rate_ = r->decay_rate_;
+  //   this->is_polynomial_yield = is_polynomial_yield;
+  //   this->polynomial_yield_ = polynomial_yield_;
+  //   this->tabulated_1d_yield_ = tabulated_1d_yield_;
+  //   this->applicability_ = applicability_;
+  //   this->applicability_size = applicability_size;
+  //   this->distribution_ = distribution_;
+  // }
 };
 
 } // namespace opemc

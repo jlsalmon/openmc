@@ -155,6 +155,66 @@ public:
   virtual ~Cell() {}
 };
 
+class DummyCell : public Cell
+{
+public:
+  DummyCell() {};
+
+  bool
+  contains(Position r, Direction u, int32_t on_surface) const { return false; };
+
+  std::pair<double, int32_t>
+  distance(Position r, Direction u, int32_t on_surface) const { return {}; };
+
+  void to_hdf5(hid_t group_id) const {};
+};
+
+struct Cell_ {
+  int32_t id_;                //!< Unique ID
+  const char *name_;          //!< User-defined name
+  int type_;                  //!< Material, universe, or lattice
+  int32_t universe_;          //!< Universe # this cell is in
+  int32_t fill_;              //!< Universe # filling this cell
+  int32_t n_instances_{0};    //!< Number of instances of this cell
+
+  int distribcell_index_{C_NONE};
+  int32_t material_[1]; // FIXME: support more than one material
+  double sqrtkT_[1]; // FIXME: support more than one
+  int32_t *region_;
+  int32_t *rpn_;
+  bool simple_;  //!< Does the region contain only intersections?
+  int32_t *neighbors_;
+  Position translation_ {0, 0, 0}; //!< Translation vector for filled universe
+  double *rotation_;
+  int32_t *offset_;  //!< Distribcell offset table
+
+  Cell_() {}
+
+  Cell_(Cell *c) {
+    id_ = c->id_;
+    name_ = c->name_.c_str();
+    type_ = c->type_;
+    universe_ = c->universe_;
+    fill_ = c->fill_;
+    n_instances_ = c->n_instances_;
+    distribcell_index_ = c->distribcell_index_;
+    for (int i = 0; i < 1; ++i) { // FIXME: support more than one material
+      material_[i] = c->material_[i];
+    }
+    for (int i = 0; i < 1; ++i) { // FIXME: support more than one
+      sqrtkT_[i] = c->sqrtkT_[i];
+    }
+
+    region_ = c->region_.data(); // FIXME: this will not work
+    rpn_ = c->rpn_.data();  // FIXME: this will not work
+    simple_ = c->simple_;
+    // neighbors_ = c->neighbors_;
+    translation_ = c->translation_;
+    rotation_ = c->rotation_.data();  // FIXME: this will not work
+    offset_ = c->offset_.data();  // FIXME: this will not work
+  }
+};
+
 //==============================================================================
 
 class CSGCell : public Cell

@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
 project(openmc C CXX)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Setup output directories
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -31,6 +33,36 @@ if($ENV{CXX} MATCHES "(mpi[^/]*|CC)$")
 endif()
 
 #===============================================================================
+# HDF5 for binary output
+#===============================================================================
+
+# Allow user to specify HDF5_ROOT
+if (NOT (CMAKE_VERSION VERSION_LESS 3.12))
+  cmake_policy(SET CMP0074 NEW)
+endif()
+
+# Unfortunately FindHDF5.cmake will always prefer a serial HDF5 installation
+# over a parallel installation if both appear on the user's PATH. To get around
+# this, we check for the environment variable HDF5_ROOT and if it exists, use it
+# to check whether its a parallel version.
+
+if(NOT DEFINED HDF5_PREFER_PARALLEL)
+  if(DEFINED ENV{HDF5_ROOT} AND EXISTS $ENV{HDF5_ROOT}/bin/h5pcc)
+    set(HDF5_PREFER_PARALLEL TRUE)
+  else()
+    set(HDF5_PREFER_PARALLEL FALSE)
+  endif()
+endif()
+
+find_package(HDF5 REQUIRED COMPONENTS C HL)
+if(HDF5_IS_PARALLEL)
+  if(NOT MPI_ENABLED)
+    message(FATAL_ERROR "Parallel HDF5 must be used with MPI.")
+  endif()
+  message(STATUS "Using parallel HDF5")
+endif()
+
+#===============================================================================
 # DAGMC Geometry Support - need DAGMC/MOAB
 #===============================================================================
 if(dagmc)
@@ -38,6 +70,25 @@ if(dagmc)
   link_directories(${DAGMC_LIBRARY_DIRS})
 endif()
 
+#===============================================================================
+# pugixml library
+#===============================================================================
+
+add_library(pugixml vendor/pugixml/pugixml.cpp)
+target_include_directories(pugixml PUBLIC vendor/pugixml/)
+
+#===============================================================================
+# xtensor header-only library
+#===============================================================================
+
+add_subdirectory(vendor/xtl)
+add_subdirectory(vendor/xtensor)
+target_link_libraries(xtensor INTERFACE xtl)
+
+
+#===============================================================================
+# CUDA
+#===============================================================================
 
 # For Xcode 5, gcc is actually clang, so we have to tell CUDA to treat the compiler as
 # clang, so that it doesn't mistake it for something else.
@@ -58,7 +109,7 @@ mark_as_advanced(CLEAR CUDA_64_BIT_DEVICE_CODE)
 # wish from the GUI or from ccmake.
 if(NOT PASSED_FIRST_CONFIGURE)
 
-  list(APPEND default_nvcc_flags "--use_fast_math" "-arch sm_30" "-lineinfo")
+  list(APPEND default_nvcc_flags "--use_fast_math" "-arch sm_75" "-lineinfo" )
 
   if (CUDA_VERSION VERSION_LESS "3.0")
     list(APPEND default_nvcc_flags "--keep")
@@ -101,6 +152,9 @@ endif()
 find_package(OptiX REQUIRED)
 include_directories(
         "${OptiX_INCLUDE}"
+        include
+        ${HDF5_INCLUDE_DIRS}
+        vendor/pugixml/
 )
 
 ##################################################################
@@ -191,7 +245,25 @@ add_subdirectory(sutil)
 # Compile the cuda files to ptx.  Note that this will ignore all of the non CUDA
 # files.
 set(sources
-        src/optix/mesh.cu
+        src/optix/basic.cu
+        src/optix/simulation.cu
+        src/optix/material.cu
+        src/optix/geometry.cu
+        src/optix/particle.cu
+        src/optix/physics.cu
+        src/optix/variables.cu
+        src/optix/cell.cu
+        src/optix/math_functions.cu
+        src/optix/source.cu
+        src/optix/nuclide.cu
+        src/optix/random_lcg.cu
+        src/optix/endf.cu
+        src/optix/distribution.cu
+        src/optix/distribution_angle.cu
+        src/optix/distribution_energy.cu
+        src/optix/secondary_uncorrelated.cu
+        src/optix/secondary_kalbach.cu
+        src/optix/reaction_product.cu
         src/optix/render/accum_camera.cu
         src/optix/render/constantbg.cu
         src/optix/render/normal_shader.cu
@@ -215,36 +287,6 @@ endif()
 # continually set them over and over again.
 set(PASSED_FIRST_CONFIGURE ON CACHE INTERNAL "Already Configured once?")
 
-
-#===============================================================================
-# HDF5 for binary output
-#===============================================================================
-
-# Allow user to specify HDF5_ROOT
-if (NOT (CMAKE_VERSION VERSION_LESS 3.12))
-  cmake_policy(SET CMP0074 NEW)
-endif()
-
-# Unfortunately FindHDF5.cmake will always prefer a serial HDF5 installation
-# over a parallel installation if both appear on the user's PATH. To get around
-# this, we check for the environment variable HDF5_ROOT and if it exists, use it
-# to check whether its a parallel version.
-
-if(NOT DEFINED HDF5_PREFER_PARALLEL)
-  if(DEFINED ENV{HDF5_ROOT} AND EXISTS $ENV{HDF5_ROOT}/bin/h5pcc)
-    set(HDF5_PREFER_PARALLEL TRUE)
-  else()
-    set(HDF5_PREFER_PARALLEL FALSE)
-  endif()
-endif()
-
-find_package(HDF5 REQUIRED COMPONENTS C HL)
-if(HDF5_IS_PARALLEL)
-  if(NOT MPI_ENABLED)
-    message(FATAL_ERROR "Parallel HDF5 must be used with MPI.")
-  endif()
-  message(STATUS "Using parallel HDF5")
-endif()
 
 #===============================================================================
 # Set compile/link flags based on which compiler is being used
@@ -278,20 +320,6 @@ endif()
 message(STATUS "OpenMC C++ flags: ${cxxflags}")
 message(STATUS "OpenMC Linker flags: ${ldflags}")
 
-#===============================================================================
-# pugixml library
-#===============================================================================
-
-add_library(pugixml vendor/pugixml/pugixml.cpp)
-target_include_directories(pugixml PUBLIC vendor/pugixml/)
-
-#===============================================================================
-# xtensor header-only library
-#===============================================================================
-
-add_subdirectory(vendor/xtl)
-add_subdirectory(vendor/xtensor)
-target_link_libraries(xtensor INTERFACE xtl)
 
 #===============================================================================
 # RPATH information
@@ -415,7 +443,7 @@ add_library(libopenmc SHARED
   src/optix/optix_surface.cpp
   src/optix/optix_geometry.cpp
   src/optix/optix_renderer.cpp
-  src/optix/optix_mesh.cpp
+  src/optix/optix_data.cpp
   src/timer.cpp
   src/thermal.cpp
   src/track_output.cpp

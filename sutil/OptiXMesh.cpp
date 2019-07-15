@@ -135,7 +135,7 @@ optix::Material createOptiXMaterial(
 {
   optix::Material mat = context->createMaterial();
   mat->setClosestHitProgram( 0u, closest_hit );
-  mat->setAnyHitProgram( 0u, any_hit ) ;
+  mat->setAnyHitProgram( 0u, any_hit );
 
   if( use_textures )
     mat[ "Kd_map"]->setTextureSampler( sutil::loadTexture( context, mat_params.Kd_map, optix::make_float3(mat_params.Kd) ) );
@@ -320,7 +320,7 @@ void loadMesh(
   loader.loadMesh( mesh, load_xform.getData() );
 
   translateMeshToOptiX( mesh, buffers, optix_mesh );
-  // printMeshInfo(mesh);
+  printMeshInfo(mesh);
 
   unmap( buffers, mesh );
 }

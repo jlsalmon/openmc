@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+#include <optix_world.h>
+
 #include "hdf5.h"
 
 #include "openmc/constants.h"
@@ -58,8 +60,20 @@ public:
   //! \param[in] x independent variable
   //! \return Polynomial evaluated at x
   double operator()(double x) const;
-private:
+// private:
   std::vector<double> coef_; //!< Polynomial coefficients
+};
+
+struct Polynomial_ {
+  rtBufferId<double, 1> coef_;  //!< Polynomial coefficients
+  unsigned long num_coeffs;
+
+  __device__ __forceinline__ Polynomial_() {}
+
+  __device__ __forceinline__ Polynomial_(rtBufferId<double, 1> coef_, unsigned long num_coeffs) {
+    this->coef_ = coef_;
+    this->num_coeffs = num_coeffs;
+  }
 };
 
 //==============================================================================
@@ -82,13 +96,41 @@ public:
   // Accessors
   const std::vector<double>& x() const { return x_; }
   const std::vector<double>& y() const { return y_; }
-private:
+// private:
   std::size_t n_regions_ {0}; //!< number of interpolation regions
   std::vector<int> nbt_; //!< values separating interpolation regions
   std::vector<Interpolation> int_; //!< interpolation schemes
   std::size_t n_pairs_; //!< number of (x,y) pairs
   std::vector<double> x_; //!< values of abscissa
   std::vector<double> y_; //!< values of ordinate
+};
+
+struct Tabulated1D_ {
+
+  size_t n_regions_; //!< number of interpolation regions
+  rtBufferId<int, 1> nbt_; //!< values separating interpolation regions
+  rtBufferId<Interpolation, 1> int_; //!< interpolation schemes
+  size_t n_pairs_; //!< number of (x,y) pairs
+  rtBufferId<double, 1> x_; //!< values of abscissa
+  unsigned long x_size;
+  rtBufferId<double, 1> y_; //!< values of ordinate
+
+  __device__ __forceinline__ Tabulated1D_() {}
+
+  __device__ __forceinline__ Tabulated1D_(const Tabulated1D &t,
+                                          rtBufferId<int, 1> nbt_,
+                                          rtBufferId<Interpolation, 1> int_,
+                                          rtBufferId<double, 1> x_,
+                                          unsigned long x_size,
+                                          rtBufferId<double, 1> y_) {
+    n_regions_ = t.n_regions_;
+    n_pairs_ = t.n_pairs_;
+    this->nbt_ = nbt_;
+    this->int_ = int_;
+    this->x_ = x_;
+    this->x_size = x_size;
+    this->y_ = y_;
+  }
 };
 
 //==============================================================================

@@ -16,9 +16,6 @@
 #include "openmc/surface.h"
 #include "openmc/xml_interface.h"
 
-#include <optixu/optixpp_namespace.h>
-#include "OptiXMesh.h"
-#include "openmc/optix/optix_cell.h"
 
 namespace openmc {
 

@@ -129,8 +129,8 @@ bool OptiXCell::contains(Position r, Direction u, int32_t on_surface) const {
   // TODO: no bunny hits + two box hits -> outside box
   // TODO: no hits -> outside box
 
-  // printf("$$$ cell.contains(id=%ld, pos=(%f,%f,%f), dir=(%f,%f,%f)) { num_hits=%d }: %d\n",
-  //        id_, r.x, r.y, r.z, u.x, u.y, u.z, num_hits, contains);
+  printf("$$$ cell.contains(id=%ld, pos=(%f,%f,%f), dir=(%f,%f,%f)) { num_hits=%d }: %d\n",
+         id_, r.x, r.y, r.z, u.x, u.y, u.z, num_hits, contains);
   return contains;
 }
 

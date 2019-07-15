@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <vector>
+#include <optix_world.h>
 
 #include "hdf5.h"
 
@@ -34,10 +35,32 @@ public:
   // Accessors
   AngleDistribution& angle() { return angle_; }
   bool& fission() { return fission_; }
-private:
+// private:
   AngleDistribution angle_; //!< Angle distribution
   std::unique_ptr<EnergyDistribution> energy_; //!< Energy distribution
   bool fission_ {false}; //!< Whether distribution is use for fission
+};
+
+struct UncorrelatedAngleEnergy_ {
+  AngleDistribution_ angle_; //!< Angle distribution
+  bool angle_empty;
+  ContinuousTabular_ energy_; //!< Energy distribution
+  EnergyDistribution_::Type energy_type;
+  bool fission_; //!< Whether distribution is use for fission
+
+  bool& fission() { return fission_; }
+
+  __device__ __forceinline__ UncorrelatedAngleEnergy_() {};
+
+  // __device__ __forceinline__ UncorrelatedAngleEnergy_(UncorrelatedAngleEnergy *uae,
+  //                                                     AngleDistribution_ angle_,
+  //                                                     ContinuousTabular_ energy_) {
+  //   this->angle_ = angle_;
+  //   this->angle_empty = uae->angle_.empty();
+  //   this->energy_ = energy_;
+  //   this->fission_ = uae->fission_;
+  //   this->type = Type::uncorrelated;
+  // }
 };
 
 } // namespace openmc

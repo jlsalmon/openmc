@@ -92,7 +92,7 @@ public:
   int urr_inelastic_ {C_NONE};
   std::vector<UrrData> urr_data_;
 
-  std::vector<std::unique_ptr<Reaction>> reactions_; //!< Reactions
+  std::vector<Reaction*> reactions_; //!< Reactions
   std::array<size_t, 892> reaction_index_; //!< Index of each reaction
   std::vector<int> index_inelastic_scatter_;
 
@@ -104,6 +104,80 @@ private:
   static int XS_FISSION;
   static int XS_NU_FISSION;
   static int XS_PHOTON_PROD;
+};
+
+struct Nuclide_ {
+  struct EnergyGrid_ {
+    rtBufferId<int, 1> grid_index;
+    unsigned long grid_index_size;
+    rtBufferId<double, 1> energy;
+    unsigned long energy_size;
+
+    __forceinline__ __device__ EnergyGrid_() {}
+
+    __forceinline__ __device__ EnergyGrid_(Nuclide::EnergyGrid &e,
+                                           rtBufferId<int, 1> grid_index,
+                                           rtBufferId<double, 1> energy) {
+      this->grid_index = grid_index;
+      this->grid_index_size = e.grid_index.size();
+      this->energy = energy;
+      this->energy_size = e.energy.size();
+    }
+  };
+
+  // Data members
+  char name_[10]; //!< Name of nuclide, e.g. "U235"
+  int Z_; //!< Atomic number
+  int A_; //!< Mass number
+  int metastable_; //!< Metastable state
+  double awr_; //!< Atomic weight ratio
+  int i_nuclide_; //!< Index in the nuclides array
+
+  // Temperature dependent cross section data
+  rtBufferId<double, 1> kTs_; //!< temperatures in eV (k*T)
+  rtBufferId<EnergyGrid_, 1> grid_; //!< Energy grid at each temperature
+  rtBufferId<rtBufferId<double, 1>, 1> xs_; //!< Cross sections at each temperature
+
+  // Fission data
+  bool fissionable_; //!< Whether nuclide is fissionable
+  bool has_partial_fission_; //!< has partial fission reactions?
+  rtBufferId<Reaction_, 1> fission_rx_; //!< Fission reactions
+  int n_precursor_; //!< Number of delayed neutron precursors
+
+  rtBufferId<Reaction_, 1> reactions_; //!< Reactions
+  unsigned long num_reactions;
+  rtBufferId<int, 1> index_inelastic_scatter_;
+
+  __forceinline__ __device__ Nuclide_() {}
+
+  __forceinline__ __device__ Nuclide_(Nuclide *n,
+                                      rtBufferId<double, 1> kTs_,
+                                      rtBufferId<EnergyGrid_> grid_,
+                                      rtBufferId<rtBufferId<double, 1>, 1> xs_,
+                                      rtBufferId<Reaction_, 1> fission_rx_,
+                                      rtBufferId<Reaction_, 1> reactions_,
+                                      rtBufferId<int, 1> index_inelastic_scatter) {
+    strncpy(name_, n->name_.c_str(), sizeof(name_) - 1);
+    name_[sizeof(name_) - 1] = '\0';
+
+    Z_ = n->Z_;
+    A_ = n->A_;
+    metastable_ = n->metastable_;
+    awr_ = n->awr_;
+    i_nuclide_ = n->i_nuclide_;
+
+    this->kTs_ = kTs_;
+    this->grid_ = grid_;
+    this->xs_ = xs_;
+
+    fissionable_ = n->fissionable_;
+    has_partial_fission_ = n->has_partial_fission_;
+    this->fission_rx_ = fission_rx_;
+    n_precursor_ = n->n_precursor_;
+
+    this->reactions_ = reactions_;
+    this->index_inelastic_scatter_ = index_inelastic_scatter;
+  }
 };
 
 //==============================================================================

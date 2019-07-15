@@ -36,8 +36,9 @@ void read_geometry_xml()
 
   if (settings::optix) {
 
-    auto *geometry = new OptiXGeometry();
+    geometry = new OptiXGeometry();
     geometry->load("geometry.obj");
+    model::root_universe = find_root_universe();
 
     // auto *renderer = new OptiXRenderer();
     // renderer->render();

@@ -108,6 +108,24 @@ private:
   void calculate_photon_xs(Particle& p) const;
 };
 
+struct Material_ {
+  int32_t id_; //!< Unique ID
+  const char *name_; //!< Name of material
+  int nuclide_[1]; //!< Indices in nuclides vector
+  int element_[1]; //!< Indices in elements vector
+  double atom_density_[1]; //!< Nuclide atom density in [atom/b-cm]
+
+  Material_() {}
+
+  Material_(Material *m) {
+    id_ = m->id_;
+    name_ = m->name_.c_str();
+    nuclide_[0] = m->nuclide_[0]; // FIXME support more than one
+    // element_[0] = m->element_[0];
+    atom_density_[0] = m->atom_density_[0];
+  }
+};
+
 //==============================================================================
 // Non-member functions
 //==============================================================================

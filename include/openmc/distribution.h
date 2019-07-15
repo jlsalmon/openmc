@@ -8,6 +8,8 @@
 #include <memory> // for unique_ptr
 #include <vector> // for vector
 
+#include <optix_world.h>
+
 #include "pugixml.hpp"
 
 #include "openmc/constants.h"
@@ -154,7 +156,7 @@ public:
   // x property
   std::vector<double>& x() { return x_; }
   const std::vector<double>& x() const { return x_; }
-private:
+// private:
   std::vector<double> x_; //!< tabulated independent variable
   std::vector<double> p_; //!< tabulated probability density
   std::vector<double> c_; //!< cumulative distribution at tabulated values
@@ -166,6 +168,25 @@ private:
   //! \param n Number of tabulated values
   void init(const double* x, const double* p, std::size_t n,
             const double* c=nullptr);
+};
+
+struct Tabular_ {
+  rtBufferId<double, 1> x_; //!< tabulated independent variable
+  rtBufferId<double, 1> p_; //!< tabulated probability density
+  rtBufferId<double, 1> c_; //!< cumulative distribution at tabulated values
+  Interpolation interp_;  //!< interpolation rule
+
+  __device__ __forceinline__ Tabular_() {}
+
+  __device__ __forceinline__ Tabular_(rtBufferId<double, 1> x_,
+                                      rtBufferId<double, 1> p_,
+                                      rtBufferId<double, 1> c_,
+                                      Interpolation interp_) {
+    this->x_ = x_;
+    this->p_ = p_;
+    this->c_ = c_;
+    this->interp_ = interp_;
+  }
 };
 
 //==============================================================================

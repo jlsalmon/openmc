@@ -6,6 +6,8 @@
 #include <stdexcept> // for out_of_range
 #include <vector>
 
+#include <optix_world.h>
+
 namespace openmc {
 
 //==============================================================================
@@ -14,22 +16,73 @@ namespace openmc {
 
 struct Position {
   // Constructors
-  Position() = default;
-  Position(double x_, double y_, double z_) : x{x_}, y{y_}, z{z_} { };
-  Position(const double xyz[]) : x{xyz[0]}, y{xyz[1]}, z{xyz[2]} { };
+  __host__ __forceinline__ __device__ Position() = default;
+  __host__ __forceinline__ __device__ Position(double x_, double y_, double z_) : x{x_}, y{y_}, z{z_} { };
+  __host__ __forceinline__ __device__ Position(const double xyz[]) : x{xyz[0]}, y{xyz[1]}, z{xyz[2]} { };
   Position(const std::vector<double>& xyz) : x{xyz[0]}, y{xyz[1]}, z{xyz[2]} { };
   Position(const std::array<double, 3>& xyz) : x{xyz[0]}, y{xyz[1]}, z{xyz[2]} { };
 
   // Unary operators
-  Position& operator+=(Position);
-  Position& operator+=(double);
-  Position& operator-=(Position);
-  Position& operator-=(double);
-  Position& operator*=(Position);
-  Position& operator*=(double);
-  Position& operator/=(Position);
-  Position& operator/=(double);
-  Position operator-() const;
+  __host__ __forceinline__ __device__ Position& operator+=(Position other)
+  {
+    x += other.x;
+    y += other.y;
+    z += other.z;
+    return *this;
+  }
+  __host__ __forceinline__ __device__ Position& operator+=(double v)
+  {
+    x += v;
+    y += v;
+    z += v;
+    return *this;
+  }
+  __host__ __forceinline__ __device__ Position& operator-=(Position other)
+  {
+    x -= other.x;
+    y -= other.y;
+    z -= other.z;
+    return *this;
+  }
+  __host__ __forceinline__ __device__ Position& operator-=(double v)
+  {
+    x -= v;
+    y -= v;
+    z -= v;
+    return *this;
+  }
+  __host__ __forceinline__ __device__ Position& operator*=(Position other)
+  {
+    x *= other.x;
+    y *= other.y;
+    z *= other.z;
+    return *this;
+  }
+  __host__ __forceinline__ __device__ Position& operator*=(double v)
+  {
+    x *= v;
+    y *= v;
+    z *= v;
+    return *this;
+  }
+  __host__ __forceinline__ __device__ Position& operator/=(Position other)
+  {
+    x /= other.x;
+    y /= other.y;
+    z /= other.z;
+    return *this;
+  }
+  __host__ __forceinline__ __device__ Position& operator/=(double v)
+  {
+    x /= v;
+    y /= v;
+    z /= v;
+    return *this;
+  }
+  __host__ __forceinline__ __device__ Position operator-() const
+  {
+    return {-x, -y, -z};
+  }
 
   const double& operator[](int i) const {
     switch (i) {
@@ -55,10 +108,10 @@ struct Position {
   //! Dot product of two vectors
   //! \param[in] other Vector to take dot product with
   //! \result Resulting dot product
-  inline double dot(Position other) {
+  __host__ __forceinline__ __device__ double dot(Position other) {
     return x*other.x + y*other.y + z*other.z;
   }
-  inline double norm() {
+  __host__ __forceinline__ __device__ double norm() {
     return std::sqrt(x*x + y*y + z*z);
   }
 
@@ -69,21 +122,21 @@ struct Position {
 };
 
 // Binary operators
-inline Position operator+(Position a, Position b) { return a += b; }
-inline Position operator+(Position a, double b)   { return a += b; }
-inline Position operator+(double a, Position b)   { return b += a; }
+__host__ __forceinline__ __device__ Position operator+(Position a, Position b) { return a += b; }
+__host__ __forceinline__ __device__ Position operator+(Position a, double b)   { return a += b; }
+__host__ __forceinline__ __device__ Position operator+(double a, Position b)   { return b += a; }
 
-inline Position operator-(Position a, Position b) { return a -= b; }
-inline Position operator-(Position a, double b)   { return a -= b; }
-inline Position operator-(double a, Position b)   { return b -= a; }
+__host__ __forceinline__ __device__ Position operator-(Position a, Position b) { return a -= b; }
+__host__ __forceinline__ __device__ Position operator-(Position a, double b)   { return a -= b; }
+__host__ __forceinline__ __device__ Position operator-(double a, Position b)   { return b -= a; }
 
-inline Position operator*(Position a, Position b) { return a *= b; }
-inline Position operator*(Position a, double b)   { return a *= b; }
-inline Position operator*(double a, Position b)   { return b *= a; }
+__host__ __forceinline__ __device__ Position operator*(Position a, Position b) { return a *= b; }
+__host__ __forceinline__ __device__ Position operator*(Position a, double b)   { return a *= b; }
+__host__ __forceinline__ __device__ Position operator*(double a, Position b)   { return b *= a; }
 
-inline Position operator/(Position a, Position b) { return a /= b; }
-inline Position operator/(Position a, double b)   { return a /= b; }
-inline Position operator/(double a, Position b)   { return b /= a; }
+__host__ __forceinline__ __device__ Position operator/(Position a, Position b) { return a /= b; }
+__host__ __forceinline__ __device__ Position operator/(Position a, double b)   { return a /= b; }
+__host__ __forceinline__ __device__ Position operator/(double a, Position b)   { return b /= a; }
 
 inline bool operator==(Position a, Position b)
 {return a.x == b.x && a.y == b.y && a.z == b.z;}

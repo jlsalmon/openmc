@@ -628,7 +628,7 @@ void scatter(Particle* p, int i_nuclide)
 
     // Perform collision physics for inelastic scattering
     const auto& rx {nuc->reactions_[i]};
-    inelastic_scatter(nuc.get(), rx.get(), p);
+    inelastic_scatter(nuc.get(), rx, p);
     p->event_mt_ = rx->mt_;
   }
 

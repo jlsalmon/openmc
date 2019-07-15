@@ -27,10 +27,10 @@ rtBuffer<float, 1> intersection_distance_buffer;
 rtBuffer<int, 1> num_hits_buffer;
 
 
-RT_PROGRAM void generate_ray() {
-  // printf(">>> geometry.generate_ray(origin=(%f, %f, %f), direction=(%f, %f, %f))\n",
-  //        ray_origin.x, ray_origin.y, ray_origin.z,
-  //        ray_direction.x, ray_direction.y, ray_direction.z);
+RT_PROGRAM void generate_ray_basic() {
+  printf(">>> geometry.generate_ray(origin=(%f, %f, %f), direction=(%f, %f, %f))\n",
+         ray_origin.x, ray_origin.y, ray_origin.z,
+         ray_direction.x, ray_direction.y, ray_direction.z);
 
 
   PerRayData_geometry payload = {};
@@ -59,22 +59,12 @@ RT_PROGRAM void generate_ray() {
   intersection_distance_buffer[0] = closest_intersection_distance;
   num_hits_buffer[0] = num_hits;
 
-
-  // optix::Ray ray(ray_origin, ray_direction, 0, scene_epsilon);
-  // PerRayData_geometry payload = {};
-  //
-  // rtTrace(top_object, ray, payload);
-  //
-  // instance_id_buffer[0] = payload.surface_id;
-  // intersection_distance_buffer[0] = payload.intersection_distance;
-  // num_hits_buffer[0] = payload.num_hits;
-
-  // printf(">>> geometry.generate_ray() { id=%d, dist=%f }\n",
-  //   payload.surface_id, payload.intersection_distance);
+  printf(">>> geometry.generate_ray() { id=%d, dist=%f }\n",
+    payload.surface_id, payload.intersection_distance);
 }
 
 
-RT_PROGRAM void any_hit() {
+RT_PROGRAM void any_hit_basic() {
   // payload.num_hits++;
   // rtIgnoreIntersection();
 
@@ -84,7 +74,7 @@ RT_PROGRAM void any_hit() {
 }
 
 
-RT_PROGRAM void closest_hit() {
+RT_PROGRAM void closest_hit_basic() {
   // payload.num_hits++;
   payload.intersection_distance = intersection_distance;
   payload.surface_id = rtGetPrimitiveIndex();
@@ -95,19 +85,19 @@ RT_PROGRAM void closest_hit() {
   // bool back = rtIsTriangleHitBackFace();
 // #endif
 
-  // printf(">>> geometry.closest_hit() { id=%d, dist=%f }\n",
+  // printf(">>> closest_hit() { id=%d, dist=%f }\n",
   //        payload.surface_id, payload.intersection_distance);
 }
 
 
-RT_PROGRAM void miss() {
-  // printf(">>> geometry.miss()\n");
+RT_PROGRAM void miss_basic() {
+  // printf(">>> miss()\n");
   payload.hit = false;
 }
 
 
-RT_PROGRAM void exception() {
-  printf(">>> geometry.exception() { 0x%X at launch index (%d,%d) }\n",
+RT_PROGRAM void exception_basic() {
+  printf(">>> exception() { 0x%X at launch index (%d,%d) }\n",
          rtGetExceptionCode(), launch_index.x, launch_index.y);
 }
 

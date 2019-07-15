@@ -16,6 +16,12 @@ public:
   virtual ~AngleEnergy() = default;
 };
 
+struct AngleEnergy_ {
+  enum class Type {
+    uncorrelated = 1, correlated = 2, nbody = 3, kalbach_mann = 3
+  };
+};
+
 }
 
 #endif // OPENMC_ANGLE_ENERGY_H

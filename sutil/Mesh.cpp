@@ -663,24 +663,24 @@ void printMeshInfo( const Mesh& mesh, std::ostream& out )
                                << mesh.bbox_max[2] << " )"
                                << std::endl;
 
-  if( mesh.positions )
-  {
-    out << "\tpositions:" << std::endl;
-    for( uint64_t i = 0; i < mesh.num_vertices; ++i )
-      out << "\t\t( " << mesh.positions[i*3+0] << ", "
-                      << mesh.positions[i*3+1] << ", "
-                      << mesh.positions[i*3+2] << " )"
-                      << std::endl;
-  }
-  if( mesh.tri_indices )
-  {
-    out << "\ttri indices:" << std::endl;
-    for( uint64_t i = 0; i < mesh.num_triangles; ++i )
-      out << "\t\t( " << mesh.tri_indices[i*3+0] << ", "
-                      << mesh.tri_indices[i*3+1] << ", "
-                      << mesh.tri_indices[i*3+2] << " )"
-                      << std::endl;
-  }
+  // if( mesh.positions )
+  // {
+  //   out << "\tpositions:" << std::endl;
+  //   for( uint64_t i = 0; i < mesh.num_vertices; ++i )
+  //     out << "\t\t( " << mesh.positions[i*3+0] << ", "
+  //                     << mesh.positions[i*3+1] << ", "
+  //                     << mesh.positions[i*3+2] << " )"
+  //                     << std::endl;
+  // }
+  // if( mesh.tri_indices )
+  // {
+  //   out << "\ttri indices:" << std::endl;
+  //   for( uint64_t i = 0; i < mesh.num_triangles; ++i )
+  //     out << "\t\t( " << mesh.tri_indices[i*3+0] << ", "
+  //                     << mesh.tri_indices[i*3+1] << ", "
+  //                     << mesh.tri_indices[i*3+2] << " )"
+  //                     << std::endl;
+  // }
   // if( mesh.mat_indices )
   // {
   //   out << "\tmat indices:" << std::endl;

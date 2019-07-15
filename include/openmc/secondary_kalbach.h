@@ -50,6 +50,10 @@ private:
   std::vector<KMTable> distribution_; //!< Distribution at each energy
 };
 
+struct KalbachMann_ {
+  
+};
+
 } // namespace openmc
 
 #endif // OPENMC_SECONDARY_KALBACH_H

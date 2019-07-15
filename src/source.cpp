@@ -20,7 +20,14 @@
 #include "openmc/settings.h"
 #include "openmc/simulation.h"
 #include "openmc/state_point.h"
+#include "openmc/thermal.h"
 #include "openmc/xml_interface.h"
+
+#include <optix_world.h>
+#include "openmc/geometry.h"
+#include "openmc/optix/optix_geometry.h"
+#include "openmc/optix/optix_data.h"
+#include "openmc/optix/optix_cell.h"
 
 namespace openmc {
 
@@ -263,15 +270,33 @@ void initialize_source()
     file_close(file_id);
 
   } else {
-    // Generation source sites from specified distribution in user input
-    for (int64_t i = 0; i < simulation::work_per_rank; ++i) {
-      // initialize random number seed
-      int64_t id = simulation::total_gen*settings::n_particles +
-        simulation::work_index[mpi::rank] + i + 1;
-      set_particle_seed(id);
 
-      // sample external source distribution
-      simulation::source_bank[i] = sample_external_source();
+    if (settings::optix) {
+      Context context = openmc::geometry->context;
+
+      // Launch context
+      context->launch(1, static_cast<RTsize>(simulation::work_per_rank));
+
+      // Retrieve output buffer of banked particles
+      Buffer source_bank_buffer = context["source_bank_buffer"]->getBuffer();
+      auto *source_bank = static_cast<Particle::Bank *>(source_bank_buffer->map());
+      for (int i = 0; i < simulation::work_per_rank; ++i) {
+        simulation::source_bank.push_back(source_bank[i]);
+      }
+      source_bank_buffer->unmap();
+    }
+
+    else {
+      // Generation source sites from specified distribution in user input
+      for (int64_t i = 0; i < simulation::work_per_rank; ++i) {
+        // initialize random number seed
+        int64_t id = simulation::total_gen*settings::n_particles +
+          simulation::work_index[mpi::rank] + i + 1;
+        set_particle_seed(id);
+
+        // sample external source distribution
+        simulation::source_bank[i] = sample_external_source();
+      }
     }
   }
 

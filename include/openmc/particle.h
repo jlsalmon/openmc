@@ -13,6 +13,8 @@
 #include "openmc/constants.h"
 #include "openmc/position.h"
 
+#include <optix_world.h>
+
 namespace openmc {
 
 //==============================================================================
@@ -50,7 +52,19 @@ struct LocalCoord {
   bool rotated {false};  //!< Is the level rotated?
 
   //! clear data from a single coordinate level
+#ifndef __CUDA_ARCH__
   void reset();
+#else
+  __forceinline__ __device__ void reset()
+  {
+    cell = C_NONE;
+    universe = C_NONE;
+    lattice = C_NONE;
+    lattice_x = 0;
+    lattice_y = 0;
+    rotated = false;
+  }
+#endif
 };
 
 //==============================================================================
@@ -280,6 +294,109 @@ public:
 
   // Track output
   bool write_track_ {false};
+};
+
+struct Particle_ {
+  NuclideMicroXS neutron_xs_[1]; //!< Microscopic neutron cross sections // FIXME: support more than one
+  // ElementMicroXS photon_xs_; //!< Microscopic photon cross sections
+  MacroXS macro_xs_; //!< Macroscopic cross sections
+
+  int64_t id_;  //!< Unique ID
+  Particle::Type type_ {Particle::Type::neutron};   //!< Particle type (n, p, e, etc.)
+
+  int n_coord_ {1};              //!< number of current coordinate levels
+  int cell_instance_;            //!< offset for distributed properties
+
+  LocalCoord *coord_; //!< coordinates for all levels
+
+  // Particle coordinates before crossing a surface
+  int n_coord_last_ {1};      //!< number of current coordinates
+  int *cell_last_;  //!< coordinates for all levels
+
+  // Energy data
+  double E_;       //!< post-collision energy in eV
+  double E_last_;  //!< pre-collision energy in eV
+  int g_ {0};      //!< post-collision energy group (MG only)
+  int g_last_;     //!< pre-collision energy group (MG only)
+
+  // Other physical data
+  double wgt_ {1.0};     //!< particle weight
+  double mu_;      //!< angle of scatter
+  bool alive_ {true};     //!< is particle alive?
+
+  // Other physical data
+  Position r_last_current_; //!< coordinates of the last collision or
+  //!< reflective/periodic surface crossing for
+  //!< current tallies
+  Position r_last_;   //!< previous coordinates
+  Direction u_last_;  //!< previous direction coordinates
+  double wgt_last_ {1.0};   //!< pre-collision particle weight
+  double wgt_absorb_ {0.0}; //!< weight absorbed for survival biasing
+
+  // What event took place
+  bool fission_ {false}; //!< did particle cause implicit fission
+  int event_;          //!< scatter, absorption
+  int event_nuclide_;  //!< index in nuclides array
+  int event_mt_;       //!< reaction MT
+  int delayed_group_ {0};  //!< delayed group
+
+  // Post-collision physical data
+  int n_bank_ {0};        //!< number of fission sites banked
+  double wgt_bank_ {0.0}; //!< weight of fission sites banked
+  int n_delayed_bank_[MAX_DELAYED_GROUPS];  //!< number of delayed fission
+  //!< sites banked
+
+  // Indices for various arrays
+  int surface_ {0};             //!< index for surface particle is on
+  int cell_born_ {-1};      //!< index for cell particle was born in
+  int material_ {-1};       //!< index for current material
+  int material_last_ {-1};  //!< index for last material
+
+  // Temperature of current cell
+  double sqrtkT_ {-1.0};      //!< sqrt(k_Boltzmann * temperature) in eV
+  double sqrtkT_last_ {0.0};  //!< last temperature
+
+  // Statistical data
+  int n_collision_ {0};  //!< number of collisions
+
+  // Track output
+  bool write_track_ {false};
+
+  __forceinline__ __device__ Particle_() {
+    // Create and clear coordinate levels
+    coord_ = (LocalCoord *)(malloc(1 /*FIXME: model::n_coord_levels*/ * sizeof(LocalCoord)));
+    cell_last_ = (int *)(malloc(1 /*FIXME: model::n_coord_levels*/ * sizeof(int)));
+    clear();
+
+    for (int& n : n_delayed_bank_) {
+      n = 0;
+    }
+
+    // FIXME
+    // Create microscopic cross section caches
+    // neutron_xs_ = (NuclideMicroXS *)(malloc(data::nuclides.size() * sizeof(NuclideMicroXS)));
+    // photon_xs__ = (ElementMicroXS *)(malloc(data::elements.size() * sizeof(ElementMicroXS)));
+  };
+
+  __forceinline__ __device__ Position& r() { return coord_[0].r; }
+  __forceinline__ __device__ const Position& r() const { return coord_[0].r; }
+
+  __forceinline__ __device__ Position& r_local() { return coord_[n_coord_ - 1].r; }
+  __forceinline__ __device__ const Position& r_local() const { return coord_[n_coord_ - 1].r; }
+
+  __forceinline__ __device__ Direction& u() { return coord_[0].u; }
+  __forceinline__ __device__ const Direction& u() const { return coord_[0].u; }
+
+  __forceinline__ __device__ Direction& u_local() { return coord_[n_coord_ - 1].u; }
+  __forceinline__ __device__ const Direction& u_local() const { return coord_[n_coord_ - 1].u; }
+
+  __forceinline__ __device__ void clear() {
+    // reset any coordinate levels
+    for (int i = 0; i < 1 /*FIXME: model::n_coord_levels*/; ++i) {
+      coord_[i].reset();
+    }
+    n_coord_ = 1;
+  }
 };
 
 } // namespace openmc

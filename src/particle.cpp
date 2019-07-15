@@ -27,12 +27,15 @@
 #include "openmc/tallies/tally_scoring.h"
 #include "openmc/track_output.h"
 
+#include <optix_world.h>
+
 namespace openmc {
 
 //==============================================================================
 // LocalCoord implementation
 //==============================================================================
 
+#ifndef __CUDA_ARCH__
 void
 LocalCoord::reset()
 {
@@ -43,11 +46,13 @@ LocalCoord::reset()
   lattice_y = 0;
   rotated = false;
 }
+#endif
 
 //==============================================================================
 // Particle implementation
 //==============================================================================
 
+#ifndef __CUDA_ARCH__
 Particle::Particle()
 {
   // Create and clear coordinate levels
@@ -63,7 +68,9 @@ Particle::Particle()
   neutron_xs_.resize(data::nuclides.size());
   photon_xs_.resize(data::elements.size());
 }
+#endif
 
+#ifndef __CUDA_ARCH__
 void
 Particle::clear()
 {
@@ -71,6 +78,7 @@ Particle::clear()
   for (auto& level : coord_) level.reset();
   n_coord_ = 1;
 }
+#endif
 
 void
 Particle::create_secondary(Direction u, double E, Type type) const

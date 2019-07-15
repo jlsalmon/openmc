@@ -6,6 +6,8 @@
 
 #include <vector> // for vector
 
+#include <optix_world.h>
+
 #include "hdf5.h"
 
 #include "openmc/distribution.h"
@@ -30,9 +32,25 @@ public:
   //! \return Whether distribution is empty
   bool empty() const { return energy_.empty(); }
 
-private:
+// private:
   std::vector<double> energy_;
   std::vector<UPtrDist> distribution_;
+};
+
+struct AngleDistribution_ {
+  rtBufferId<double, 1> energy_;
+  unsigned long energy_size;
+  rtBufferId<Tabular_, 1> distribution_;
+
+  __device__ __forceinline__ AngleDistribution_() {}
+
+  // __device__ __forceinline__ AngleDistribution_(rtBufferId<double, 1> energy_,
+  //                                               unsigned long energy_size,
+  //                                               rtBufferId<Tabular_, 1> distribution_) {
+  //   this->energy_ = energy_;
+  //   this->energy_size = energy_size;
+  //   this->distribution_ = distribution_;
+  // }
 };
 
 } // namespace openmc

@@ -20,6 +20,12 @@
 #include "openmc/tallies/tally.h"
 #include "openmc/tallies/trigger.h"
 
+#include "openmc/optix/optix_geometry.h"
+#include "openmc/optix/optix_data.h"
+#include "openmc/geometry.h"
+
+#include <cuda_profiler_api.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -27,6 +33,7 @@
 
 #include <algorithm>
 #include <string>
+#include <openmc/thermal.h>
 
 //==============================================================================
 // C API functions
@@ -87,6 +94,10 @@ int openmc_simulation_init()
   simulation::entropy.clear();
   simulation::need_depletion_rx = false;
   openmc_reset();
+
+  if (settings::optix) {
+    initialize_device_data();
+  }
 
   // If this is a restart run, load the state point data and binary source
   // file
@@ -188,20 +199,49 @@ int openmc_next_batch(int* status)
     // ====================================================================
     // LOOP OVER PARTICLES
 
-    #pragma omp parallel for schedule(runtime)
-    for (int64_t i_work = 1; i_work <= simulation::work_per_rank; ++i_work) {
-      simulation::current_work = i_work;
+    if (settings::optix) {
+      Context context = openmc::geometry->context;
+      context["overall_generation"]->setInt(overall_generation());
 
-      // grab source particle from bank
-      Particle p;
-      initialize_history(&p, simulation::current_work);
+      // TODO: externalise this
+      cudaProfilerInitialize("/home/justin-local/cuda_profiler.conf", "cuda_profiler_output.csv", cudaOutputMode::cudaKeyValuePair);
+      cudaProfilerStart();
+      // Launch the context
+      printf("Launching OptiX context...\n");
+      // context->launch(2, 10);
+      context->launch(2, simulation::work_per_rank);
+      cudaProfilerStop();
 
-      // transport particle
-      p.transport();
+    } else {
+      #pragma omp parallel for schedule(runtime)
+      for (int64_t i_work = 1; i_work <= simulation::work_per_rank; ++i_work) {
+        simulation::current_work = i_work;
+
+        // grab source particle from bank
+        Particle p;
+        initialize_history(&p, simulation::current_work);
+
+        // transport particle
+        p.transport();
+      }
     }
 
     // Accumulate time for transport
     simulation::time_transport.stop();
+
+    if (settings::optix) {
+      Context context = openmc::geometry->context;
+
+      // Retrieve fission bank
+      Buffer fission_bank_buffer = context["fission_bank_buffer"]->getBuffer();
+      auto *fission_bank = static_cast<Particle::Bank *>(fission_bank_buffer->map());
+      for (int i = 0; i < 3* simulation::work_per_rank; ++i) {
+        // FIXME: by doing this, the "no fission sites banked" error will not be
+        // triggered even if we only do one particle
+        simulation::fission_bank.push_back(fission_bank[i]);
+      }
+      fission_bank_buffer->unmap();
+    }
 
     finalize_generation();
   }
@@ -424,11 +464,11 @@ void finalize_generation()
   if (settings::run_mode == RUN_MODE_EIGENVALUE) {
 #ifdef _OPENMP
     // Join the fission bank from each thread into one global fission bank
-    join_bank_from_threads();
+    join_bank_from_threads(); // FIXME: are we handling this properly on the GPU?
 #endif
 
     // Distribute fission bank across processors evenly
-    synchronize_bank();
+    synchronize_bank(); // FIXME: are we handling this properly on the GPU?
 
     // Calculate shannon entropy
     if (settings::entropy_on) shannon_entropy();
