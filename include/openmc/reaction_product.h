@@ -11,6 +11,7 @@
 
 #include "openmc/angle_energy.h"
 #include "openmc/secondary_uncorrelated.h"
+#include "openmc/secondary_kalbach.h"
 #include "openmc/endf.h"
 #include "openmc/particle.h"
 
@@ -61,8 +62,8 @@ struct ReactionProduct_ {
   Polynomial_ polynomial_yield_; //!< Yield as a function of energy
   Tabulated1D_ tabulated_1d_yield_;
   rtBufferId<Tabulated1D_, 1> applicability_; //!< Applicability of distribution
-  unsigned long applicability_size;
-  rtBufferId<UncorrelatedAngleEnergy_, 1> distribution_; //!< Secondary angle-energy distribution
+  rtBufferId<UncorrelatedAngleEnergy_, 1> distribution_uae; //!< Secondary angle-energy distribution
+  rtBufferId<KalbachMann_, 1> distribution_km; //!< Secondary angle-energy distribution
   AngleEnergy_::Type distribution_type;
 
   // __device__ __forceinline__ ReactionProduct_() {}

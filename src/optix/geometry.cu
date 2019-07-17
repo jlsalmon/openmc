@@ -364,9 +364,9 @@ BoundaryInfo _distance_to_boundary(Particle_& p)
           float3 normal = normal_buffer[level_surf_cross];
           Direction norm = {normal.x, normal.y, normal.z};
           if (u.dot(norm) > 0) {
-            info.surface_index = std::abs(level_surf_cross);
+            info.surface_index = fabsf(level_surf_cross);
           } else {
-            info.surface_index = -std::abs(level_surf_cross);
+            info.surface_index = -fabsf(level_surf_cross);
           }
         }
 

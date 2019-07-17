@@ -218,6 +218,12 @@ parse_command_line(int argc, char* argv[])
       } else if (arg == "-t" || arg == "--track") {
         settings::write_all_tracks = true;
 
+      } else if (arg == "--no-rtx") {
+        settings::rtx = false;
+
+      } else if (arg == "--no-tri-api") {
+        settings::use_tri_api = false;
+
       } else {
         std::cerr << "Unknown option: " << argv[i] << '\n';
         print_usage();

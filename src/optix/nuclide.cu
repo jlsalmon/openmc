@@ -30,7 +30,7 @@ void _calculate_elastic_xs(const Nuclide_& n, Particle_& p)
 
   if (i_temp >= 0) {
     const auto& xs = n.reactions_[0].xs_[i_temp].value_;
-    micro.elastic = (1.0 - f)*xs[i_grid] + f*xs[i_grid + 1];
+    micro.elastic = (1.0 - f)*xs[i_grid] + f*xs[i_grid + 1]; // TODO: is it this???
   }
 
   // printf("micro.index_temp: %d\n", micro.index_temp);
@@ -169,8 +169,8 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, double sab_frac, Par
       case TEMPERATURE_NEAREST:
       {
         double max_diff = INFTY;
-        for (int t = 0; t < 1; ++t) {
-          double diff = std::abs(n.kTs_[t] - kT);
+        for (int t = 0; t < n.kTs_.size(); ++t) {
+          double diff = fabsf(n.kTs_[t] - kT);
           if (diff < max_diff) {
             i_temp = t;
             max_diff = diff;
@@ -181,7 +181,7 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, double sab_frac, Par
 
       case TEMPERATURE_INTERPOLATION:
         // Find temperatures that bound the actual temperature
-        for (i_temp = 0; i_temp < 1 - 1; ++i_temp) {
+        for (i_temp = 0; i_temp < n.kTs_.size() - 1; ++i_temp) {
           if (n.kTs_[i_temp] <= kT && kT < n.kTs_[i_temp + 1]) break;
         }
 
@@ -204,9 +204,9 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, double sab_frac, Par
     int i_grid;
     if (p.E_ < grid.energy[0]) {
       i_grid = 0;
-    } else if (p.E_ > grid.energy[grid.energy_size - 1]) {
+    } else if (p.E_ > grid.energy[grid.energy.size() - 1]) {
       // printf("Here\n");
-      i_grid = grid.energy_size - 2;
+      i_grid = grid.energy.size() - 2;
     } else {
       // printf("Oh noooo :(\n");
       // Determine bounding indices based on which equal log-spaced
@@ -215,18 +215,19 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, double sab_frac, Par
       // printf("grid_index_buffer[0]: %i\n", grid_index_buffer[0]);
       // printf("grid_index_buffer[-1]: %i\n", grid_index_buffer[grid.grid_index_size - 1]);
       //
-      // printf("i_log_union: %d\n", i_log_union);
+      rtPrintf("i_log_union: %d\n", i_log_union);
 
       int i_low  = grid.grid_index[i_log_union];
       int i_high = grid.grid_index[i_log_union + 1] + 1;
 
-      // printf("i_low: %d i_high: %d\n", i_low, i_high);
+      rtPrintf("i_low: %d i_high: %d\n", i_low, i_high);
 
       // Perform binary search over reduced range
       i_grid = _lower_bound(i_low, i_high, grid.energy, p.E_);
     }
 
-    // printf("i_grid: %d\n", i_grid);
+    rtPrintf("i_grid: %d\n", i_grid);
+    rtPrintf("i_temp: %d\n", i_temp);
     // printf("grid.energy[76399]: %lf\n", grid.energy[76399]);
     // printf("grid.energy[76400]: %lf\n", grid.energy[76400]);
 

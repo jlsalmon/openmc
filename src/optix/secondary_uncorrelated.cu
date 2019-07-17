@@ -15,14 +15,11 @@ double _sample_energy_distribution(const UncorrelatedAngleEnergy_& uae, double E
   double E_out;
 
   if (uae.energy_type == EnergyDistribution_::Type::continuous) {
-    E_out = _sample_continuous_tabular_distribution(uae.energy_, E_in);
+    E_out = _sample_continuous_tabular_distribution(uae.energy_ct, E_in);
   } else if (uae.energy_type == EnergyDistribution_::Type::discrete_photon) {
-    printf("TODO: sample discrete photon\n");
-    // E_out = _sample_discrete_photon_distribution(dp, E_in);
+    E_out = _sample_discrete_photon_distribution(uae.energy_dp, E_in);
   } else if (uae.energy_type == EnergyDistribution_::Type::level) {
-    // E_out = _sample_level_inelastic_distribution(li, E_in);
-    printf("TODO: sample level inelastic\n");
-    E_out = E_in;
+    E_out = _sample_level_inelastic_distribution(uae.energy_li, E_in);
   }
 
   return E_out;

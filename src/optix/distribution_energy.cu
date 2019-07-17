@@ -13,6 +13,11 @@ using namespace openmc;
 __device__ __forceinline__
 double _sample_continuous_tabular_distribution(const ContinuousTabular_& ct, double E)
 {
+  rtPrintf("ContinuousTabular_.interpolation_ buffer id: %d\n", ct.interpolation_.getId());
+  rtPrintf("ContinuousTabular_.energy_ buffer id: %d\n", ct.energy_.getId());
+  rtPrintf("ContinuousTabular_.breakpoints_ buffer id: %d\n", ct.breakpoints_.getId());
+  rtPrintf("ContinuousTabular_.distribution_ buffer id: %d\n", ct.distribution_.getId());
+
   // Read number of interpolation regions and incoming energies
   bool histogram_interp;
   if (ct.n_region_ == 1) {
@@ -23,7 +28,7 @@ double _sample_continuous_tabular_distribution(const ContinuousTabular_& ct, dou
 
   // Find energy bin and calculate interpolation factor -- if the energy is
   // outside the range of the tabulated energies, choose the first or last bins
-  auto n_energy_in = ct.energy_size;
+  auto n_energy_in = ct.energy_.size();
   int i;
   double r;
   if (E < ct.energy_[0]) {
@@ -34,7 +39,7 @@ double _sample_continuous_tabular_distribution(const ContinuousTabular_& ct, dou
     r = 1.0;
   } else {
     // i = lower_bound_index(energy_.begin(), energy_.end(), E);
-    i = _lower_bound(0, ct.energy_size, ct.energy_, E);
+    i = _lower_bound(0, ct.energy_.size(), ct.energy_, E);
     r = (E - ct.energy_[i]) / (ct.energy_[i+1] - ct.energy_[i]);
   }
 
@@ -131,12 +136,17 @@ double _sample_continuous_tabular_distribution(const ContinuousTabular_& ct, dou
 
 __device__ __forceinline__
 double _sample_discrete_photon_distribution(const DiscretePhoton_& dp, double E) {
-  // TODO
-  printf("DISCRETE PHOTON\n");
+  printf("DISCRETE PHOTON!\n");
+  if (dp.primary_flag_ == 2) {
+    return dp.energy_ + dp.A_/(dp.A_+ 1)*E;
+  } else {
+    return dp.energy_;
+  }
 }
 
 __device__ __forceinline__
-double _sample_level_inelastic_distribution(const LevelInelastic_& dp, double E) {
-  // TODO
-  printf("LEVEL INELASTIC\n");
+double _sample_level_inelastic_distribution(const LevelInelastic_& li, double E) {
+  // printf("LEVEL INELASTIC\n");
+  // printf("mass ratio: %lf, threshold: %lf\n", li.mass_ratio_, li.threshold_);
+  return li.mass_ratio_*(E - li.threshold_);
 }

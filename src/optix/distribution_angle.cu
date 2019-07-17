@@ -12,8 +12,11 @@ using namespace openmc;
 __device__ __forceinline__
 double _sample_angle_distribution(const AngleDistribution_& ad, double E)
 {
+  rtPrintf("AngleDistribution_.energy_ buffer id: %d\n", ad.energy_.getId());
+  rtPrintf("AngleDistribution_.distribution_ buffer id: %d\n", ad.distribution_.getId());
+
   // Determine number of incoming energies
-  auto n = ad.energy_size;
+  auto n = ad.energy_.size();
 
   // Find energy bin and calculate interpolation factor -- if the energy is
   // outside the range of the tabulated energies, choose the first or last bins
@@ -27,7 +30,7 @@ double _sample_angle_distribution(const AngleDistribution_& ad, double E)
     r = 1.0;
   } else {
     // i = lower_bound_index(energy_.begin(), energy_.end(), E);
-    i = _lower_bound(0, ad.energy_size, ad.energy_, E);
+    i = _lower_bound(0, ad.energy_.size(), ad.energy_, E);
     r = (E - ad.energy_[i])/(ad.energy_[i+1] - ad.energy_[i]);
   }
 
@@ -39,6 +42,6 @@ double _sample_angle_distribution(const AngleDistribution_& ad, double E)
   double mu = _sample_tabular(ad.distribution_[i]);
 
   // Make sure mu is in range [-1,1] and return
-  if (std::abs(mu) > 1.0) mu = std::copysign(1.0, mu);
+  if (fabsf(mu) > 1.0) mu = copysignf(1.0, mu);
   return mu;
 }

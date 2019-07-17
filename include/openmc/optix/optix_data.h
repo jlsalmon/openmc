@@ -12,6 +12,8 @@
 using namespace optix;
 using namespace openmc;
 
+void precompile_kernels();
+
 void initialize_device_data();
 Buffer initialize_nuclide_reactions(Context context, std::vector<Reaction*> reactions_);
 void initialize_tabulated_1d(Tabulated1D_& tabulated_1d_, Context context, const Tabulated1D& tabulated_1d);
@@ -20,5 +22,6 @@ void initialize_angle_distribution(AngleDistribution_& angle_, Context context, 
 void initialize_continuous_tabular(ContinuousTabular_& energy_, Context context, ContinuousTabular* ct);
 void initialize_discrete_photon(DiscretePhoton_& energy_, Context context, DiscretePhoton* dp);
 void initialize_level_inelastic(LevelInelastic_& energy_, Context context, LevelInelastic* li);
+void initialize_kalbach_mann(KalbachMann_& energy_, Context context, KalbachMann* km);
 
 #endif //OPENMC_OPTIX_DATA_H

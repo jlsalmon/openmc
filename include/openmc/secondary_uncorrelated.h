@@ -44,7 +44,9 @@ public:
 struct UncorrelatedAngleEnergy_ {
   AngleDistribution_ angle_; //!< Angle distribution
   bool angle_empty;
-  ContinuousTabular_ energy_; //!< Energy distribution
+  ContinuousTabular_ energy_ct; //!< Energy distribution
+  LevelInelastic_ energy_li;
+  DiscretePhoton_ energy_dp;
   EnergyDistribution_::Type energy_type;
   bool fission_; //!< Whether distribution is use for fission
 

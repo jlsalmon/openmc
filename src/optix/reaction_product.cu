@@ -15,24 +15,26 @@ void _sample_angle_energy(const ReactionProduct_& rp, int i, double E_in, double
   AngleEnergy_::Type type = rp.distribution_type;
 
   if (type == AngleEnergy_::Type::uncorrelated) {
-    _sample_uncorrelated_angle_energy(rp.distribution_[i], E_in, E_out, mu);
+    // rtPrintf("UAE.distribution buffer id: %d\n", rp.distribution_.getId());
+    _sample_uncorrelated_angle_energy(rp.distribution_uae[i], E_in, E_out, mu);
   } else if (type == AngleEnergy_::Type::kalbach_mann) {
-    // KalbachMann_& km = (KalbachMann_&) angle_energy;
-    // _sample_kalbach_mann(rp.distribution_[i], E_in, E_out, mu);
-    printf("TODO: sample kalbach-mann\n");
+    _sample_kalbach_mann(rp.distribution_km[i], E_in, E_out, mu);
+  } else {
+    printf("ERROR: unknown AngleEnergy type\n");
   }
 }
 
 __device__ __forceinline__
 void _sample_reaction_product(const ReactionProduct_& rp, double E_in, double& E_out, double& mu)
 {
-  auto n = rp.applicability_size;
+  auto n = rp.applicability_.size();
   if (n > 1) {
     double prob = 0.0; // FIXME
     double c = prn();
     for (int i = 0; i < n; ++i) {
       // Determine probability that i-th energy distribution is sampled
       // prob += rp.applicability_[i](E_in);
+      rtPrintf("rp.applicability_ buffer id: %d\n", rp.applicability_.getId());
       prob += _tabulated_1d(rp.applicability_[i], E_in);
 
       // If i-th distribution is sampled, sample energy from the distribution

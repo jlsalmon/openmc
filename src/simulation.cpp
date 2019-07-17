@@ -97,6 +97,7 @@ int openmc_simulation_init()
 
   if (settings::optix) {
     initialize_device_data();
+    precompile_kernels();
   }
 
   // If this is a restart run, load the state point data and binary source
@@ -204,13 +205,14 @@ int openmc_next_batch(int* status)
       context["overall_generation"]->setInt(overall_generation());
 
       // TODO: externalise this
-      cudaProfilerInitialize("/home/justin-local/cuda_profiler.conf", "cuda_profiler_output.csv", cudaOutputMode::cudaKeyValuePair);
-      cudaProfilerStart();
+      // cudaProfilerInitialize("/home/justin-local/cuda_profiler.conf",
+      //   "cuda_profiler_output.csv", cudaOutputMode::cudaKeyValuePair);
+      // cudaProfilerStart();
       // Launch the context
       printf("Launching OptiX context...\n");
       // context->launch(2, 10);
       context->launch(2, simulation::work_per_rank);
-      cudaProfilerStop();
+      // cudaProfilerStop();
 
     } else {
       #pragma omp parallel for schedule(runtime)

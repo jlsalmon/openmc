@@ -112,7 +112,6 @@ struct Tabulated1D_ {
   rtBufferId<Interpolation, 1> int_; //!< interpolation schemes
   size_t n_pairs_; //!< number of (x,y) pairs
   rtBufferId<double, 1> x_; //!< values of abscissa
-  unsigned long x_size;
   rtBufferId<double, 1> y_; //!< values of ordinate
 
   __device__ __forceinline__ Tabulated1D_() {}
@@ -121,14 +120,12 @@ struct Tabulated1D_ {
                                           rtBufferId<int, 1> nbt_,
                                           rtBufferId<Interpolation, 1> int_,
                                           rtBufferId<double, 1> x_,
-                                          unsigned long x_size,
                                           rtBufferId<double, 1> y_) {
     n_regions_ = t.n_regions_;
     n_pairs_ = t.n_pairs_;
     this->nbt_ = nbt_;
     this->int_ = int_;
     this->x_ = x_;
-    this->x_size = x_size;
     this->y_ = y_;
   }
 };

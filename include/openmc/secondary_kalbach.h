@@ -30,7 +30,7 @@ public:
   //! \param[out] E_out Outgoing energy in [eV]
   //! \param[out] mu Outgoing cosine with respect to current direction
   void sample(double E_in, double& E_out, double& mu) const;
-private:
+// private:
   //! Outgoing energy/angle at a single incoming energy
   struct KMTable {
     int n_discrete; //!< Number of discrete lines
@@ -51,7 +51,27 @@ private:
 };
 
 struct KalbachMann_ {
-  
+
+  struct KMTable_ {
+    int n_discrete; //!< Number of discrete lines
+    Interpolation interpolation; //!< Interpolation law
+    rtBufferId<double, 1> e_out; //!< Outgoing energies [eV]
+    rtBufferId<double, 1> p; //!< Probability density
+    rtBufferId<double, 1> c; //!< Cumulative distribution
+    rtBufferId<double, 1> r; //!< Pre-compound fraction
+    rtBufferId<double, 1> a; //!< Parameterized function
+
+    __device__ __forceinline__ KMTable_() {}
+  };
+
+  int n_region_; //!< Number of interpolation regions
+  rtBufferId<int, 1> breakpoints_; //!< Breakpoints between regions
+  rtBufferId<Interpolation, 1> interpolation_; //!< Interpolation laws
+  rtBufferId<double, 1> energy_; //!< Energies [eV] at which distributions
+                                 //!< are tabulated
+  rtBufferId<KMTable_, 1> distribution_; //!< Distribution at each energy
+
+  __device__ __forceinline__ KalbachMann_() {}
 };
 
 } // namespace openmc

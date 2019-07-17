@@ -19,7 +19,13 @@ void _calculate_neutron_xs(Particle_& p)
 
   // Find energy index on energy grid
   int neutron = static_cast<int>(Particle::Type::neutron);
-  int i_grid = std::log(p.E_/energy_min_neutron)/log_spacing;
+  int i_grid = log(p.E_/energy_min_neutron)/log_spacing;
+
+  rtPrintf("p.E_: %lf, energy_min_neutron: %f, log_spacing: %f\n", p.E_, energy_min_neutron, log_spacing);
+  rtPrintf("p.E_/energy_min_neutron %f\n", p.E_/energy_min_neutron);
+  rtPrintf("logf(p.E_/energy_min_neutron) %f\n", log(p.E_/energy_min_neutron));
+  rtPrintf("logf(p.E_/energy_min_neutron)/log_spacing %f\n", log(p.E_/energy_min_neutron)/log_spacing);
+  rtPrintf("i_grid %i\n", i_grid);
 
   // Determine if this material has S(a,b) tables
   bool check_sab = false; // (m.thermal_tables_.size() > 0); FIXME: support thermal tables
@@ -66,13 +72,15 @@ void _calculate_neutron_xs(Particle_& p)
 
     // Calculate microscopic cross section for this nuclide
     const auto& micro {p.neutron_xs_[i_nuclide]};
-    // printf("%lf %lf %lf %lf %d %d %lf %lf\n", p.E_, micro.last_E, p.sqrtkT_, micro.last_sqrtkT, i_sab, micro.index_sab, sab_frac, micro.sab_frac);
+    rtPrintf("%lf %lf %lf %lf %d %d %lf %lf\n", p.E_, micro.last_E, p.sqrtkT_, micro.last_sqrtkT, i_sab, micro.index_sab, sab_frac, micro.sab_frac);
     if (p.E_ != micro.last_E
         || p.sqrtkT_ != micro.last_sqrtkT
         || i_sab != micro.index_sab
         || sab_frac != micro.sab_frac) {
       // data::nuclides[i_nuclide]->calculate_xs(i_sab, i_grid, sab_frac, p);
       _calculate_xs(nuclide, i_sab, i_grid, sab_frac, p);
+    } else {
+      rtPrintf("Not calculating xs\n"); // it's not this
     }
 
     // ======================================================================

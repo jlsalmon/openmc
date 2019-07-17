@@ -33,6 +33,7 @@ void _create_secondary(Particle_& p, Direction u, double E, Particle::Type type)
 __forceinline__ __device__
 void _inelastic_scatter(const Nuclide_& nuc, const Reaction_& rx, Particle_& p)
 {
+  // printf("inelastic scatter\n");
   // copy energy of neutron
   double E_in = p.E_;
 
@@ -40,6 +41,7 @@ void _inelastic_scatter(const Nuclide_& nuc, const Reaction_& rx, Particle_& p)
   double E;
   double mu;
   // rx.products_[0].sample(E_in, E, mu);
+  rtPrintf("Sampling reaction product\n");
   _sample_reaction_product(rx.products_[0], E_in, E, mu);
 
   // if scattering system is in center-of-mass, transfer cosine of scattering
@@ -49,22 +51,23 @@ void _inelastic_scatter(const Nuclide_& nuc, const Reaction_& rx, Particle_& p)
 
     // determine outgoing energy in lab
     double A = nuc.awr_;
-    E = E_cm + (E_in + 2.0*mu*(A + 1.0) * std::sqrt(E_in*E_cm))
+    E = E_cm + (E_in + 2.0*mu*(A + 1.0) * sqrtf(E_in*E_cm))
                / ((A + 1.0)*(A + 1.0));
 
     // determine outgoing angle in lab
-    mu = mu*std::sqrt(E_cm/E) + 1.0/(A+1.0) * std::sqrt(E_in/E);
+    mu = mu*sqrtf(E_cm/E) + 1.0/(A+1.0) * sqrtf(E_in/E);
   }
 
   // Because of floating-point roundoff, it may be possible for mu to be
   // outside of the range [-1,1). In these cases, we just set mu to exactly -1
   // or 1
-  if (std::abs(mu) > 1.0) mu = std::copysign(1.0, mu);
+  if (fabsf(mu) > 1.0) mu = copysignf(1.0, mu);
 
   // Set outgoing energy and scattering angle
   p.E_ = E;
   p.mu_ = mu;
 
+  rtPrintf("Rotating angle\n");
   // change direction of particle
   p.u() = rotate_angle(p.u(), mu, nullptr);
 
@@ -72,19 +75,23 @@ void _inelastic_scatter(const Nuclide_& nuc, const Reaction_& rx, Particle_& p)
   // double yield = (*rx->products_[0].yield_)(E_in); // FIXME: yield: is this the right distro?
   double yield;
   if (rx.products_[0].is_polynomial_yield) {
+    rtPrintf("Polynomial yield\n");
     yield = _polynomial(rx.products_[0].polynomial_yield_, E_in);
   } else {
+    rtPrintf("Tabulated 1D yield\n");
     yield = _tabulated_1d(rx.products_[0].tabulated_1d_yield_, E_in);
   }
-  if (std::floor(yield) == yield) {
+  if (floorf(yield) == yield) {
     // If yield is integral, create exactly that many secondary particles
-    for (int i = 0; i < static_cast<int>(std::round(yield)) - 1; ++i) {
+    for (int i = 0; i < static_cast<int>(roundf(yield)) - 1; ++i) {
+      rtPrintf("Creating secondary particle\n");
       _create_secondary(p, p.u(), p.E_, Particle::Type::neutron);
     }
   } else {
     // Otherwise, change weight of particle based on yield
     p.wgt_ *= yield;
   }
+  // printf("inelastic scatter done\n");
 }
 
 
@@ -299,7 +306,7 @@ void _elastic_scatter(int i_nuclide, const Reaction_& rx, double kT, Particle_& 
   // get pointer to nuclide
   const auto& nuc = nuclide; // FIXME: {data::nuclides[i_nuclide]};
 
-  double vel = std::sqrt(p.E_);
+  double vel = sqrtf(p.E_);
   double awr = nuc.awr_;
 
   // Neutron velocity in LAB
@@ -325,7 +332,7 @@ void _elastic_scatter(int i_nuclide, const Reaction_& rx, double kT, Particle_& 
   // distribution
   double mu_cm;
 
-  auto& d = rx.products_[0].distribution_[0];
+  auto &product = rx.products_[0];
   // auto d_ = (UncorrelatedAngleEnergy_&) d;
 
   // ReactionProduct_& product = rx.products_[0];
@@ -350,9 +357,10 @@ void _elastic_scatter(int i_nuclide, const Reaction_& rx, double kT, Particle_& 
   // printf("LOL %lu\n", d.angle_.distribution_.size());
   // printf("LOL %i\n", d.angle_.energy_.getId());
   // printf("LOL %lu\n", d.angle_.energy_.size());
-  if (!d.angle_empty) { // FIXME
+  if (product.distribution_type == AngleEnergy_::Type::uncorrelated) { // FIXME
+    auto& d = rx.products_[0].distribution_uae[0];
     // mu_cm = d.angle().sample(p.E_);
-    // printf("Sampling angle dist from _elastic_scatter\n");
+    rtPrintf("Sampling angle dist from _elastic_scatter\n");
     mu_cm = _sample_angle_distribution(d.angle_, p.E_);
   } else {
     mu_cm = 2.0*prn() - 1.0;
@@ -370,7 +378,7 @@ void _elastic_scatter(int i_nuclide, const Reaction_& rx, double kT, Particle_& 
   v_n += v_cm;
 
   p.E_ = v_n.dot(v_n);
-  vel = std::sqrt(p.E_);
+  vel = sqrtf(p.E_);
 
   // compute cosine of scattering angle in LAB frame by taking dot product of
   // neutron's pre- and post-collision angle
@@ -382,7 +390,7 @@ void _elastic_scatter(int i_nuclide, const Reaction_& rx, double kT, Particle_& 
   // Because of floating-point roundoff, it may be possible for mu_lab to be
   // outside of the range [-1,1). In these cases, we just set mu_lab to exactly
   // -1 or 1
-  if (std::abs(p.mu_) > 1.0) p.mu_ = std::copysign(1.0, p.mu_);
+  if (fabsf(p.mu_) > 1.0) p.mu_ = copysignf(1.0, p.mu_);
 }
 
 
@@ -424,7 +432,10 @@ void _scatter(Particle_& p, int i_nuclide)
 
   // Calculate elastic cross section if it wasn't precalculated
   if (micro.elastic == CACHE_INVALID) {
+    rtPrintf("CALCULATING ELASTIC XS\n");
+    rtPrintf("micro.elastic before: %lf\n", micro.elastic);
     _calculate_elastic_xs(nuc, p);
+    rtPrintf("micro.elastic after: %lf\n", micro.elastic);
   }
 
   // printf("\n");
@@ -446,10 +457,12 @@ void _scatter(Particle_& p, int i_nuclide)
   // printf("micro.last_sqrtkT: %lf\n", micro.last_sqrtkT);
   // printf("\n");
   //
-  // printf("cutoff: %lf\n", cutoff);
+  rtPrintf("cutoff: %lf\n", cutoff);
+  rtPrintf("i_temp: %i\n", i_temp);
+  rtPrintf("i_grid: %i\n", i_grid);
 
   double prob = micro.elastic - micro.thermal;
-  // printf("prob: %lf\n", prob);
+  rtPrintf("prob: %lf\n", prob);
 
   if (prob > cutoff) {
     // =======================================================================
@@ -466,7 +479,8 @@ void _scatter(Particle_& p, int i_nuclide)
   }
 
   prob = micro.elastic;
-  // if (prob > cutoff && !sampled) { // FIXME: sab
+  if (prob > cutoff && !sampled) { // FIXME: sab
+    printf("FIXME: SAB SCATTERING\n");
   //   // =======================================================================
   //   // S(A,B) SCATTERING
   //
@@ -474,7 +488,7 @@ void _scatter(Particle_& p, int i_nuclide)
   //
   //   p.event_mt_ = ELASTIC;
   //   sampled = true;
-  // }
+  }
 
   if (!sampled) {
     // =======================================================================
@@ -486,10 +500,10 @@ void _scatter(Particle_& p, int i_nuclide)
       i = nuc.index_inelastic_scatter_[j];
       ++j;
 
-      // printf("i: %d j: %d\n", i, j);
+      rtPrintf("i: %d j: %d\n", i, j);
 
       // Check to make sure inelastic scattering reaction sampled
-      if (i >= nuc.num_reactions) {
+      if (i >= nuc.reactions_.size()) {
         // p.write_restart();
         // fatal_error("Did not sample any reaction for nuclide " + nuc->name_);
         printf("ERROR: Did not sample any reaction for nuclide FIXME\n");
@@ -498,18 +512,21 @@ void _scatter(Particle_& p, int i_nuclide)
       // if energy is below threshold for this reaction, skip it
       // const auto& xs {nuc.reactions_[i].xs_[i_temp]};
       const auto& xs {nuc.reactions_[i].xs_[i_temp]};
-      if (i_grid < xs.threshold) continue;
+      if (i_grid < xs.threshold) {
+        rtPrintf("i_grid %i less than threshold %i\n", i_grid, xs.threshold);
+        continue;
+      }
 
-      // printf("nuc.reactions_[i]: %p\n", nuc.reactions_[i]);
-      // printf("nuc.reactions_[i].xs_[i_temp]: %p\n", nuc.reactions_[i].xs_[i_temp]);
-      // printf("xs.value[i_grid - xs.threshold]: %lf\n", xs.value_[i_grid - xs.threshold]);
-      // printf("xs.value[i_grid - xs.threshold + 1]: %lf\n", xs.value_[i_grid - xs.threshold + 1]);
+      rtPrintf("nuc.reactions_[i]: %p\n", nuc.reactions_[i]);
+      rtPrintf("nuc.reactions_[i].xs_[i_temp]: %p\n", nuc.reactions_[i].xs_[i_temp]);
+      rtPrintf("xs.value[i_grid - xs.threshold]: %lf\n", xs.value_[i_grid - xs.threshold]);
+      rtPrintf("xs.value[i_grid - xs.threshold + 1]: %lf\n", xs.value_[i_grid - xs.threshold + 1]);
 
       // add to cumulative probability
       prob += (1.0 - f)*xs.value_[i_grid - xs.threshold] +
               f*xs.value_[i_grid - xs.threshold + 1];
 
-      // printf("prob: %lf\n", prob);
+      rtPrintf("prob is now: %lf\n", prob);
     }
 
     // Perform collision physics for inelastic scattering

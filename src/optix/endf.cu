@@ -22,6 +22,11 @@ double _polynomial(const Polynomial_& p, double x)
 __device__ __forceinline__
 double _tabulated_1d(const Tabulated1D_& t, double x)
 {
+  rtPrintf("Tabulated1D_.x_ buffer id: %d\n", t.x_.getId());
+  rtPrintf("Tabulated1D_.int_ buffer id: %d\n", t.int_.getId());
+  rtPrintf("Tabulated1D_.nbt_ buffer id: %d\n", t.nbt_.getId());
+  rtPrintf("Tabulated1D_.y_ buffer id: %d\n", t.y_.getId());
+
   // find which bin the abscissa is in -- if the abscissa is outside the
   // tabulated range, the first or last point is chosen, i.e. no interpolation
   // is done outside the energy range

@@ -19,11 +19,11 @@ void _initialize_history(Particle_& p, int64_t index_source)
 {
   // set defaults
   // p->from_source(&simulation::source_bank[index_source - 1]);
-  _from_source(p, &source_bank_buffer[index_source]);
+  // _from_source(p, &source_bank_buffer[index_source]);
 
   // set identifier for particle
   // p->id_ = simulation::work_index[mpi::rank] + index_source;
-  p.id_ = index_source;
+  // p.id_ = index_source;
 
   // set random number seed
   // int64_t particle_seed = (total_gen + overall_generation - 1) // FIXME: random
@@ -56,8 +56,14 @@ void _initialize_history(Particle_& p, int64_t index_source)
 RT_PROGRAM void simulate_particle() {
   using namespace openmc;
 
-  Particle_ p;
+  Particle_& p = particle_buffer[launch_index];
   _initialize_history(p, launch_index);
+
+  // printf("p.alive: %d\n", p.alive_);
+  // printf("p.wgt_: %lf\n", p.wgt_);
+  // printf("p.r: (%lf,%lf,%lf)\n", p.r().x, p.r().y, p.r().z);
+  // printf("p.u: (%lf,%lf,%lf)\n", p.u().x, p.u().y, p.u().z);
+  // printf("p.E_:%lf\n", p.E_);
 
   // transport particle
   _transport(p);

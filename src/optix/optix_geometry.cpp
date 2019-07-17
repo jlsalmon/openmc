@@ -2,6 +2,7 @@
 #include "openmc/geometry.h"
 #include "openmc/geometry_aux.h"
 #include "openmc/error.h"
+#include "openmc/settings.h"
 
 #include "openmc/optix/optix_geometry.h"
 #include "openmc/optix/optix_cell.h"
@@ -33,7 +34,7 @@ void OptiXGeometry::load(const std::string &filename) {
 void OptiXGeometry::create_context() {
   write_message("Creating OptiX context...", 5);
 
-  int rtx = 1;
+  int rtx = settings::rtx ? 1 : 0;
   if (rtGlobalSetAttribute(RT_GLOBAL_ATTRIBUTE_ENABLE_RTX, sizeof(rtx), &rtx) != RT_SUCCESS) {
     printf("Error setting RT_GLOBAL_ATTRIBUTE_ENABLE_RTX!\n");
   } else {
@@ -46,16 +47,21 @@ void OptiXGeometry::create_context() {
   // context->setStackSize(2800);
   // context->setMaxTraceDepth(12);
 
-  cudaDeviceSetLimit(cudaLimit::cudaLimitMallocHeapSize, size_t(1524*1024*1024));
+  size_t free, total;
+  cudaMemGetInfo(&free, &total);
+  printf("GPU memory: %zu of %zu bytes free\n", free, total);
+
+  // Figure out how much heap memory will be needed
+  // cudaDeviceSetLimit(cudaLimit::cudaLimitMallocHeapSize, free);
 
   UsageReportLogger *logger;
   int usage_report_level = 2;
   context->setUsageReportCallback(usage_report_callback, usage_report_level, logger);
 
   // FIXME: enabling exceptions somehow hides a misaligned address error...
-  context->setExceptionEnabled(RT_EXCEPTION_ALL, true);
-  context->setPrintEnabled(true);
-  // context->setPrintLaunchIndex(53, 0, 0);
+  // context->setExceptionEnabled(RT_EXCEPTION_ALL, true);
+  // context->setPrintEnabled(true);
+  // context->setPrintLaunchIndex(41756, 0, 0);
 
   context["scene_epsilon"]->setFloat(1.e-4f);
 
@@ -87,7 +93,7 @@ void OptiXGeometry::create_context() {
 void OptiXGeometry::load_mesh(const std::string &filename) {
   mesh.context = context;
   mesh.visitor = this;
-  mesh.use_tri_api = true;
+  mesh.use_tri_api = settings::use_tri_api;
   mesh.ignore_mats = false;
 
   // TODO: the sample_source and transport entry points will need their own

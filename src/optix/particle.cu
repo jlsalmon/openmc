@@ -257,6 +257,7 @@ void _from_source(Particle_ &p, const Particle::Bank* src)
   p.u_last_ = src->u;
   /*if (settings::run_CE) {*/ // FIXME: multigroup
   p.E_ = src->E;
+  rtPrintf("p.E_: %lf\n", p.E_);
   p.g_ = 0;
 /*  } else {
     p.g_ = static_cast<int>(src->E);
@@ -518,7 +519,7 @@ void _transport(Particle_ &p) {
     if (n_event == MAX_EVENTS) {
       // warning("Particle " + std::to_string(id_) +
       //         " underwent maximum number of events.");
-      printf("Particle %lli underwent maximum number of events.", p.id_);
+      printf("Particle %lli underwent maximum number of events.\n", p.id_);
       p.alive_ = false;
     }
 
@@ -535,7 +536,7 @@ void _transport(Particle_ &p) {
       // if (write_track_) add_particle_track();
     }
   }
-  //
+
   // // Finish particle track output.
   // if (write_track_) {
   //   write_particle_track(*this);

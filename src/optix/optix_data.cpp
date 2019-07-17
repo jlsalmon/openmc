@@ -20,10 +20,19 @@
 using namespace openmc;
 using namespace optix;
 
+void precompile_kernels() {
+  Context context = geometry->context;
+  printf("Precompiling OptiX kernels...\n");
+
+  context->launch(0, 0);
+  context->launch(1, 0);
+  context->launch(2, 0);
+
+  printf("Precompilation complete\n");
+}
 
 void initialize_device_data() {
   Context context = geometry->context;
-
   printf("Initialising device data...\n");
 
   // Cell buffer
@@ -42,6 +51,10 @@ void initialize_device_data() {
   // ===========================================================================
   // Output buffers
   // ===========================================================================
+
+  // TODO: figure out how big these buffers should be based on the number of
+  //  particles and the amount of memory available, and split the transport into
+  //  multiple launches if necessary
 
   // Source bank buffer
   Buffer source_bank_buffer = context->createBuffer(
@@ -68,9 +81,9 @@ void initialize_device_data() {
   context["n_particles"]->setUint(settings::n_particles);
   context["total_gen"]->setInt(simulation::total_gen);
   context["num_nuclides"]->setUint(data::nuclides.size());
-  context["log_spacing"]->setFloat(simulation::log_spacing);
-  context["energy_min_neutron"]->setFloat(data::energy_min[static_cast<int>(Particle::Type::neutron)]);
-  context["energy_max_neutron"]->setFloat(data::energy_max[static_cast<int>(Particle::Type::neutron)]);
+  context["log_spacing"]->setUserData(sizeof(double), &simulation::log_spacing);
+  context["energy_min_neutron"]->setUserData(sizeof(double), &data::energy_min[static_cast<int>(Particle::Type::neutron)]);
+  context["energy_max_neutron"]->setUserData(sizeof(double), &data::energy_max[static_cast<int>(Particle::Type::neutron)]);
   context["temperature_method"]->setInt(settings::temperature_method);
   context["keff"]->setFloat(simulation::keff);
 
@@ -79,6 +92,18 @@ void initialize_device_data() {
   openmc::Material *material = model::materials[0].get();
   Material_ material_(material);
   context["material"]->setUserData(sizeof(material_), &material_);
+
+  // ===========================================================================
+  // Input buffers
+  // ===========================================================================
+
+  // Particles
+  Buffer particle_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+  particle_buffer->setElementSize(sizeof(Particle_));
+  particle_buffer->setSize(simulation::work_per_rank);
+  context["particle_buffer"]->setBuffer(particle_buffer);
+
+  printf("One particle weighs %zu bytes\n", sizeof(Particle_));
 
   // ===========================================================================
   // Nuclide
@@ -91,6 +116,8 @@ void initialize_device_data() {
   kTs_buffer->setSize(nuclide->kTs_.size());
   memcpy(kTs_buffer->map(), nuclide->kTs_.data(), nuclide->kTs_.size() * sizeof(double));
   kTs_buffer->unmap();
+  // printf("nuclide_.kTs_ buffer id: %d\n", kTs_buffer->getId());
+  // printf("nuclide_.kTs_.size: %lu\n", nuclide->kTs_.size());
 
   // Nuclide.grid_
   std::vector<Nuclide_::EnergyGrid_> grids;
@@ -103,6 +130,7 @@ void initialize_device_data() {
     grid_index_buffer->setSize(grid.grid_index.size());
     memcpy(grid_index_buffer->map(), grid.grid_index.data(), grid.grid_index.size() * sizeof(int));
     grid_index_buffer->unmap();
+    // printf("EnergyGrid_.grid_index buffer id: %d\n", grid_index_buffer->getId());
 
     // EnergyGrid.energy
     Buffer energy_buffer = context->createBuffer(RT_BUFFER_INPUT);
@@ -111,18 +139,17 @@ void initialize_device_data() {
     energy_buffer->setSize(grid.energy.size());
     memcpy(energy_buffer->map(), grid.energy.data(), grid.energy.size() * sizeof(double));
     energy_buffer->unmap();
+    // printf("EnergyGrid_.energy buffer id: %d\n", energy_buffer->getId());
 
     Nuclide_::EnergyGrid_ grid_(grid, grid_index_buffer->getId(), energy_buffer->getId());
     grids.push_back(grid_);
-
-    // printf("EnergyGrid_.grid_index buffer id: %d\n", grid_.grid_index.getId());
-    // printf("EnergyGrid_.energy buffer id: %d\n", grid_.energy.getId());
   }
   Buffer grid_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
   grid_buffer->setElementSize(sizeof(Nuclide_::EnergyGrid_));
   grid_buffer->setSize(nuclide->grid_.size());
   memcpy(grid_buffer->map(), grids.data(), grids.size() * sizeof(Nuclide_::EnergyGrid_));
   grid_buffer->unmap();
+  // printf("nuclide_.grid_ buffer id: %d\n", grid_buffer->getId());
 
   // printf("nuclide->grid_[0].grid_index.size(): %lu\n", nuclide->grid_[0].grid_index.size());
   // printf("nuclide->grid_[0].grid_index[0]: %i\n", nuclide->grid_[0].grid_index[0]);
@@ -140,10 +167,9 @@ void initialize_device_data() {
     xs_buffer->setSize(xs.size());
     memcpy(xs_buffer->map(), xs.data(), xs.size() * sizeof(double));
     xs_buffer->unmap();
+    // printf("xs_.xs_ buffer id: %d\n", xs_buffer->getId());
 
     xss.push_back(xs_buffer->getId());
-
-    // printf("xs_.xs_ buffer id: %d\n", xs_buffer->getId());
   }
   // printf("xss.size(): %d\n", xss.size());
 
@@ -151,6 +177,7 @@ void initialize_device_data() {
   xs_buffers->setSize(xss.size());
   memcpy(xs_buffers->map(), xss.data(), xss.size() * sizeof(rtBufferId<rtBufferId<double, 1>, 1>));
   xs_buffers->unmap();
+  // printf("Nuclide.xs_ buffer id: %d\n", xs_buffers->getId());
 
   // printf("nuclide->xs_[0].size(): %d\n", nuclide->xs_[0].size());
   // printf("nuclide->xs_[0](0,1,2,3,4,5, 0): %lf %lf %lf %lf %lf %lf\n",
@@ -175,6 +202,7 @@ void initialize_device_data() {
   memcpy(index_inelastic_scatter_buffer->map(), nuclide->index_inelastic_scatter_.data(),
          nuclide->index_inelastic_scatter_.size() * sizeof(int));
   index_inelastic_scatter_buffer->unmap();
+  // printf("nuclide_.index_inelastic_scatter_ buffer id: %d\n", index_inelastic_scatter_buffer->getId());
 
   // // Angle distribution energy buffer
   // Buffer angle_distribution_energy_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
@@ -195,12 +223,6 @@ void initialize_device_data() {
     index_inelastic_scatter_buffer->getId());
   context["nuclide"]->setUserData(sizeof(nuclide_), &nuclide_);
 
-  // printf("nuclide_.kTs_ buffer id: %d\n", nuclide_.kTs_.getId());
-  // printf("nuclide_.grid_ buffer id: %d\n", nuclide_.grid_.getId());
-  // printf("nuclide_.xs_ buffer id: %d\n", nuclide_.xs_.getId());
-  // printf("nuclide_.fission_rx_ buffer id: %d\n", nuclide_.fission_rx_.getId());
-  // printf("nuclide_.reactions_ buffer id: %d\n", nuclide_.reactions_.getId());
-  // printf("nuclide_.index_inelastic_scatter_ buffer id: %d\n", nuclide_.index_inelastic_scatter_.getId());
 
   // ===========================================================================
   // Input buffers
@@ -258,6 +280,7 @@ Buffer initialize_nuclide_reactions(Context context, std::vector<Reaction*> reac
       memcpy(applicability_buffer->map(), applicabilities.data(),
              applicabilities.size() * sizeof(Tabulated1D_));
       applicability_buffer->unmap();
+      // printf("Reaction.applicability buffer id: %d\n", applicability_buffer->getId());
 
       // ReactionProduct.distribution_
       // FIXME: All products have only one distribution, so we can assume for
@@ -265,6 +288,7 @@ Buffer initialize_nuclide_reactions(Context context, std::vector<Reaction*> reac
       //  This is probably not true in general though and will most likely need
       //  to be fixed.
       Buffer distribution_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+      // printf("Reaction.distribution buffer id: %d\n", distribution_buffer->getId());
 
       if (UncorrelatedAngleEnergy *uae = dynamic_cast<UncorrelatedAngleEnergy *>(product.distribution_[0].get())) {
         product_.distribution_type = AngleEnergy_::Type::uncorrelated;
@@ -278,44 +302,51 @@ Buffer initialize_nuclide_reactions(Context context, std::vector<Reaction*> reac
         energy_.angle_empty = uae->angle_.empty();
 
         if (ContinuousTabular *ct = dynamic_cast<ContinuousTabular *>(uae->energy_.get())) {
-          printf("ContinuousTabular\n");
+          // printf("ContinuousTabular\n");
           energy_.energy_type = EnergyDistribution_::Type::continuous;
           ContinuousTabular_ ct_;
           initialize_continuous_tabular(ct_, context, ct);
-          energy_.energy_ = ct_;
+          energy_.energy_ct = ct_;
         }
         else if (DiscretePhoton *dp = dynamic_cast<DiscretePhoton *>(uae->energy_.get())) {
-          printf("DiscretePhoton\n");
+          // printf("DiscretePhoton\n");
           energy_.energy_type = EnergyDistribution_::Type::discrete_photon;
           DiscretePhoton_ dp_;
           initialize_discrete_photon(dp_, context, dp);
           // energy_.energy_ = dp_;
         }
         else if (LevelInelastic *li = dynamic_cast<LevelInelastic *>(uae->energy_.get())) {
-          printf("LevelInelastic\n");
+          // printf("LevelInelastic\n");
           energy_.energy_type = EnergyDistribution_::Type::level;
           LevelInelastic_ li_;
           initialize_level_inelastic(li_, context, li);
-          // energy_.energy_ = li_;
+          energy_.energy_li = li_;
         }
         else {
-          printf("None\n");
+          // printf("None\n");
           energy_.energy_type = EnergyDistribution_::Type::none;
           // EnergyDistribution_ e_;
           // energy_.energy_ = e_;
         }
 
         distribution_buffer->setElementSize(sizeof(UncorrelatedAngleEnergy_));
-        distribution_buffer->setSize(product.distribution_.size());
+        distribution_buffer->setSize(product.distribution_.size()); // FIXME: support more than one
         memcpy(distribution_buffer->map(), &energy_, product.distribution_.size() * sizeof(UncorrelatedAngleEnergy_));
         distribution_buffer->unmap();
+        product_.distribution_uae = distribution_buffer->getId();
       }
       else if (KalbachMann *km = dynamic_cast<KalbachMann *>(product.distribution_[0].get())) {
-        printf("TODO: support KalbachMann\n");
+        product_.distribution_type = AngleEnergy_::Type::kalbach_mann;
+
+        KalbachMann_ km_;
+        initialize_kalbach_mann(km_, context, km);
 
         distribution_buffer->setElementSize(sizeof(KalbachMann_));
-        distribution_buffer->setSize(0);
-        KalbachMann_ km_;
+        distribution_buffer->setSize(product.distribution_.size()); // FIXME: support more than one
+        memcpy(distribution_buffer->map(), &km_, product.distribution_.size() * sizeof(KalbachMann_));
+        distribution_buffer->unmap();
+        product_.distribution_km = distribution_buffer->getId();
+
       }
       else {
         throw "Unsupported AngleEnergy";
@@ -328,8 +359,6 @@ Buffer initialize_nuclide_reactions(Context context, std::vector<Reaction*> reac
       product_.polynomial_yield_ = polynomial_yield;
       product_.tabulated_1d_yield_ = tabulated_1d_yield;
       product_.applicability_ = applicability_buffer->getId();
-      product_.applicability_size = applicabilities.size();
-      product_.distribution_ = distribution_buffer->getId();
 
       products.push_back(product_);
     }
@@ -338,6 +367,7 @@ Buffer initialize_nuclide_reactions(Context context, std::vector<Reaction*> reac
     products_buffer->setSize(reaction->products_.size());
     memcpy(products_buffer->map(), products.data(), products.size() * sizeof(ReactionProduct_));
     products_buffer->unmap();
+    // printf("Reaction.products buffer id: %d\n", products_buffer->getId());
 
     // Reaction.xs_
     std::vector<Reaction_::TemperatureXS_> xss;
@@ -358,18 +388,17 @@ Buffer initialize_nuclide_reactions(Context context, std::vector<Reaction*> reac
     temperature_xs_buffer->setSize(reaction->xs_.size());
     memcpy(temperature_xs_buffer->map(), xss.data(), xss.size() * sizeof(Reaction_::TemperatureXS_));
     temperature_xs_buffer->unmap();
+    // printf("Reaction.temperature_xs buffer id: %d\n", temperature_xs_buffer->getId());
 
     Reaction_ reaction_(reaction, temperature_xs_buffer->getId(), products_buffer->getId());
     reactions_.push_back(reaction_);
-
-    // printf("Reaction_.xs_ buffer id: %d\n", reaction_.xs_.getId());
-    // printf("Reaction_.products_ buffer id: %d\n", reaction_.products_.getId());
   }
   Buffer reactions_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
   reactions_buffer->setElementSize(sizeof(Reaction_));
   reactions_buffer->setSize(reactions.size());
   memcpy(reactions_buffer->map(), reactions_.data(), reactions_.size() * sizeof(Reaction_));
   reactions_buffer->unmap();
+  // printf("Reactions buffer id: %d\n", reactions_buffer->getId());
 
   return reactions_buffer;
 }
@@ -412,8 +441,12 @@ void initialize_tabulated_1d(Tabulated1D_& tabulated_1d_, Context context, const
   tabulated_1d_.nbt_ = nbt_buffer->getId();
   tabulated_1d_.int_ = int_buffer->getId();
   tabulated_1d_.x_ =  x_buffer->getId();
-  tabulated_1d_.x_size = tabulated_1d.x_.size();
   tabulated_1d_.y_ = y_buffer->getId();
+
+  // printf("Tabulated1D.nbt_ buffer id: %d\n", tabulated_1d_.nbt_.getId());
+  // printf("Tabulated1D.int_ buffer id: %d\n", tabulated_1d_.int_.getId());
+  // printf("Tabulated1D.x_ buffer id: %d\n", tabulated_1d_.x_.getId());
+  // printf("Tabulated1D.y_ buffer id: %d\n", tabulated_1d_.y_.getId());
 };
 
 void initialize_polynomial(Polynomial_& polynomial_, Context context, const Polynomial& polynomial) {
@@ -422,6 +455,7 @@ void initialize_polynomial(Polynomial_& polynomial_, Context context, const Poly
   yield_buffer->setSize(polynomial.coef_.size());
   memcpy(yield_buffer->map(), polynomial.coef_.data(), polynomial.coef_.size() * sizeof(int));
   yield_buffer->unmap();
+  // printf("Polynomial.yield buffer id: %d\n", yield_buffer->getId());
 
   polynomial_.coef_ = yield_buffer->getId();
   polynomial_.num_coeffs = polynomial.coef_.size();
@@ -434,6 +468,7 @@ void initialize_angle_distribution(AngleDistribution_& angle_, Context context, 
   energy_buffer->setSize(angle.energy_.size());
   memcpy(energy_buffer->map(), angle.energy_.data(), angle.energy_.size() * sizeof(double));
   energy_buffer->unmap();
+  // printf("AngleDistribution.energy_ buffer id: %d\n", energy_buffer->getId());
 
   // AngleDistribution.distribution_
   std::vector<Tabular_> distributions;
@@ -474,13 +509,10 @@ void initialize_angle_distribution(AngleDistribution_& angle_, Context context, 
   distribution_buffer->setSize(distributions.size());
   memcpy(distribution_buffer->map(), distributions.data(), distributions.size() * sizeof(Tabular_));
   distribution_buffer->unmap();
+  // printf("AngleDistribution.distribution buffer id: %d\n", distribution_buffer->getId());
 
   angle_.energy_ = energy_buffer->getId();
-  angle_.energy_size = angle.energy_.size();
   angle_.distribution_ = distribution_buffer->getId();
-
-  printf("angle_.energy_ buffer id: %d\n",angle_.energy_.getId());
-  // printf("angle_.distribution_ buffer id: %d\n",angle_.distribution_.getId());
 }
 
 void initialize_continuous_tabular(ContinuousTabular_& energy_, Context context, ContinuousTabular* ct) {
@@ -553,20 +585,107 @@ void initialize_continuous_tabular(ContinuousTabular_& energy_, Context context,
   energy_.breakpoints_ = breakpoints_buffer->getId();
   energy_.interpolation_ = interpolation_buffer->getId();
   energy_.energy_ = energy_buffer->getId();
-  energy_.energy_size = ct->energy_.size();
   energy_.distribution_ = distribution_buffer->getId();
 
-  printf("energy_.breakpoints_ buffer id: %d\n", energy_.breakpoints_.getId());
-  printf("energy_.interpolation_ buffer id: %d\n", energy_.interpolation_.getId());
-  printf("energy_.energy_ buffer id: %d\n", energy_.energy_.getId());
-  printf("energy_.energy_size: %lu\n", energy_.energy_size);
-  printf("energy_.distribution_ buffer id: %d\n", energy_.distribution_.getId());
+  // printf("energy_.breakpoints_ buffer id: %d\n", energy_.breakpoints_.getId());
+  // printf("energy_.interpolation_ buffer id: %d\n", energy_.interpolation_.getId());
+  // printf("energy_.energy_ buffer id: %d\n", energy_.energy_.getId());
+  // printf("energy_.distribution_ buffer id: %d\n", energy_.distribution_.getId());
 }
 
 void initialize_discrete_photon(DiscretePhoton_ &energy_, Context context, DiscretePhoton *dp) {
-  // TODO
+  energy_.primary_flag_ = dp->primary_flag_;
+  energy_.A_ = dp->A_;
+  energy_.energy_ = dp->energy_;
 }
 
 void initialize_level_inelastic(LevelInelastic_ &energy_, Context context, LevelInelastic *li) {
-  // TODO
+  energy_.mass_ratio_ = li->mass_ratio_;
+  energy_.threshold_ = li->threshold_;
+}
+
+void initialize_kalbach_mann(KalbachMann_ &energy_, Context context, KalbachMann *km) {
+  energy_.n_region_ = km->n_region_;
+
+  // KalbachMann.breakpoints_
+  Buffer breakpoints_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+  breakpoints_buffer->setElementSize(sizeof(int));
+  breakpoints_buffer->setSize(km->breakpoints_.size());
+  memcpy(breakpoints_buffer->map(), km->breakpoints_.data(), km->breakpoints_.size() * sizeof(int));
+  breakpoints_buffer->unmap();
+
+  // KalbachMann.interpolation_
+  Buffer interpolation_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+  interpolation_buffer->setElementSize(sizeof(Interpolation));
+  interpolation_buffer->setSize(km->interpolation_.size());
+  memcpy(interpolation_buffer->map(), km->interpolation_.data(), km->interpolation_.size() * sizeof(Interpolation));
+  interpolation_buffer->unmap();
+
+  // KalbachMann.energy_
+  Buffer energy_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+  energy_buffer->setElementSize(sizeof(double));
+  energy_buffer->setSize(km->energy_.size());
+  memcpy(energy_buffer->map(), km->energy_.data(), km->energy_.size() * sizeof(double));
+  energy_buffer->unmap();
+
+  // KalbachMann.distribution_
+  std::vector<KalbachMann_::KMTable_> distributions;
+  for (auto &distribution : km->distribution_) {
+    
+    // KMTable.e_out
+    Buffer e_out_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+    e_out_buffer->setElementSize(sizeof(double));
+    e_out_buffer->setSize(distribution.e_out.size());
+    memcpy(e_out_buffer->map(), distribution.e_out.data(), distribution.e_out.size() * sizeof(double));
+    e_out_buffer->unmap();
+
+    // KMTable.p
+    Buffer p_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+    p_buffer->setElementSize(sizeof(double));
+    p_buffer->setSize(distribution.p.size());
+    memcpy(p_buffer->map(), distribution.p.data(), distribution.p.size() * sizeof(double));
+    p_buffer->unmap();
+
+    // KMTable.c
+    Buffer c_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+    c_buffer->setElementSize(sizeof(double));
+    c_buffer->setSize(distribution.c.size());
+    memcpy(c_buffer->map(), distribution.c.data(), distribution.c.size() * sizeof(double));
+    c_buffer->unmap();
+
+    // KMTable.r
+    Buffer r_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+    r_buffer->setElementSize(sizeof(double));
+    r_buffer->setSize(distribution.c.size());
+    memcpy(r_buffer->map(), distribution.c.data(), distribution.c.size() * sizeof(double));
+    r_buffer->unmap();
+
+    // KMTable.a
+    Buffer a_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+    a_buffer->setElementSize(sizeof(double));
+    a_buffer->setSize(distribution.c.size());
+    memcpy(a_buffer->map(), distribution.c.data(), distribution.c.size() * sizeof(double));
+    a_buffer->unmap();
+
+    KalbachMann_::KMTable_ distribution_;
+    distribution_.n_discrete = distribution.n_discrete;
+    distribution_.interpolation = distribution.interpolation;
+    distribution_.e_out = e_out_buffer->getId();
+    distribution_.p = p_buffer->getId();
+    distribution_.c = c_buffer->getId();
+    distribution_.r = r_buffer->getId();
+    distribution_.a = a_buffer->getId();
+
+    distributions.push_back(distribution_);
+  }
+  Buffer distribution_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+  distribution_buffer->setElementSize(sizeof(KalbachMann_::KMTable_));
+  distribution_buffer->setSize(distributions.size());
+  memcpy(distribution_buffer->map(), distributions.data(), distributions.size() * sizeof(KalbachMann_::KMTable_));
+  distribution_buffer->unmap();
+
+  energy_.breakpoints_ = breakpoints_buffer->getId();
+  energy_.interpolation_ = interpolation_buffer->getId();
+  energy_.energy_ = energy_buffer->getId();
+  energy_.distribution_ = distribution_buffer->getId();
 }

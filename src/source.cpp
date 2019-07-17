@@ -277,13 +277,24 @@ void initialize_source()
       // Launch context
       context->launch(1, static_cast<RTsize>(simulation::work_per_rank));
 
-      // Retrieve output buffer of banked particles
+      // Retrieve output buffer of banked source sites
       Buffer source_bank_buffer = context["source_bank_buffer"]->getBuffer();
       auto *source_bank = static_cast<Particle::Bank *>(source_bank_buffer->map());
+      std::vector<Particle_> particles;
+
       for (int i = 0; i < simulation::work_per_rank; ++i) {
-        simulation::source_bank.push_back(source_bank[i]);
+        Particle::Bank &source_site = source_bank[i];
+        simulation::source_bank.push_back(source_site);
+        Particle_ p;
+        p.from_source(source_site);
+        particles.push_back(p);
       }
       source_bank_buffer->unmap();
+
+      // Initialize particles
+      Buffer particle_buffer = context["particle_buffer"]->getBuffer();
+      memcpy(particle_buffer->map(), particles.data(), particles.size() * sizeof(Particle_));
+      particle_buffer->unmap();
     }
 
     else {

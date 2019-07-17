@@ -307,11 +307,11 @@ struct Particle_ {
   int n_coord_ {1};              //!< number of current coordinate levels
   int cell_instance_;            //!< offset for distributed properties
 
-  LocalCoord *coord_; //!< coordinates for all levels
+  LocalCoord coord_[1]; //!< coordinates for all levels
 
   // Particle coordinates before crossing a surface
   int n_coord_last_ {1};      //!< number of current coordinates
-  int *cell_last_;  //!< coordinates for all levels
+  int cell_last_[1];  //!< coordinates for all levels
 
   // Energy data
   double E_;       //!< post-collision energy in eV
@@ -362,10 +362,12 @@ struct Particle_ {
   // Track output
   bool write_track_ {false};
 
-  __forceinline__ __device__ Particle_() {
+  __host__ __forceinline__ __device__ Particle_() {
+    // printf("Constructing particle\n");
+
     // Create and clear coordinate levels
-    coord_ = (LocalCoord *)(malloc(1 /*FIXME: model::n_coord_levels*/ * sizeof(LocalCoord)));
-    cell_last_ = (int *)(malloc(1 /*FIXME: model::n_coord_levels*/ * sizeof(int)));
+    // coord_ = (LocalCoord *)(malloc(1 /*FIXME: model::n_coord_levels*/ * sizeof(LocalCoord)));
+    // cell_last_ = (int *)(malloc(1 /*FIXME: model::n_coord_levels*/ * sizeof(int)));
     clear();
 
     for (int& n : n_delayed_bank_) {
@@ -396,6 +398,36 @@ struct Particle_ {
       coord_[i].reset();
     }
     n_coord_ = 1;
+  }
+
+  void from_source(const Particle::Bank& src) {
+    // reset some attributes
+    this->clear();
+    alive_ = true;
+    surface_ = 0;
+    cell_born_ = C_NONE;
+    material_ = C_NONE;
+    n_collision_ = 0;
+    fission_ = false;
+
+    // copy attributes from source bank site
+    type_ = src.particle;
+    wgt_ = src.wgt;
+    wgt_last_ = src.wgt;
+    this->r() = src.r;
+    this->u() = src.u;
+    r_last_current_ = src.r;
+    r_last_ = src.r;
+    u_last_ = src.u;
+    // if (settings::run_CE) { // FIXME: multigroup
+      E_ = src.E;
+      g_ = 0;
+    // } else {
+    //   g_ = static_cast<int>(src->E);
+    //   g_last_ = static_cast<int>(src->E);
+    //   E_ = data::energy_bin_avg[g_ - 1];
+    // }
+    E_last_ = E_;
   }
 };
 

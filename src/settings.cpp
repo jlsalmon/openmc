@@ -108,6 +108,9 @@ int verbosity {7};
 double weight_cutoff {0.25};
 double weight_survive {1.0};
 
+bool rtx {true};
+bool use_tri_api {true};
+
 } // namespace settings
 
 //==============================================================================

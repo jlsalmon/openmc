@@ -44,7 +44,7 @@ public:
   //! \param[in] E Incident particle energy in [eV]
   //! \return Sampled energy in [eV]
   double sample(double E) const;
-private:
+// private:
   int primary_flag_; //!< Indicator of whether the photon is a primary or
                      //!< non-primary photon.
   double energy_; //!< Photon energy or binding energy
@@ -52,7 +52,10 @@ private:
 };
 
 struct DiscretePhoton_ {
-
+  int primary_flag_; //!< Indicator of whether the photon is a primary or
+                     //!< non-primary photon.
+  double energy_; //!< Photon energy or binding energy
+  double A_; //!< Atomic weight ratio of the target nuclide
 };
 
 //===============================================================================
@@ -67,13 +70,16 @@ public:
   //! \param[in] E Incident particle energy in [eV]
   //! \return Sampled energy in [eV]
   double sample(double E) const;
-private:
+// private:
   double threshold_; //!< Energy threshold in lab, (A + 1)/A * |Q|
   double mass_ratio_; //!< (A/(A+1))^2
 };
 
 struct LevelInelastic_ {
+  double threshold_; //!< Energy threshold in lab, (A + 1)/A * |Q|
+  double mass_ratio_; //!< (A/(A+1))^2
 
+  __device__ __forceinline__ LevelInelastic_() {}
 };
 
 //===============================================================================
@@ -134,7 +140,6 @@ struct ContinuousTabular_ {
   rtBufferId<int, 1> breakpoints_; //!< Breakpoints between regions
   rtBufferId<Interpolation, 1> interpolation_; //!< Interpolation laws
   rtBufferId<double, 1> energy_; //!< Incident energy in [eV]
-  unsigned long energy_size;
   rtBufferId<CTTable_, 1> distribution_; //!< Distributions for each incident energy
 
   __device__ __forceinline__ ContinuousTabular_() {}

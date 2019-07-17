@@ -109,9 +109,7 @@ private:
 struct Nuclide_ {
   struct EnergyGrid_ {
     rtBufferId<int, 1> grid_index;
-    unsigned long grid_index_size;
     rtBufferId<double, 1> energy;
-    unsigned long energy_size;
 
     __forceinline__ __device__ EnergyGrid_() {}
 
@@ -119,9 +117,7 @@ struct Nuclide_ {
                                            rtBufferId<int, 1> grid_index,
                                            rtBufferId<double, 1> energy) {
       this->grid_index = grid_index;
-      this->grid_index_size = e.grid_index.size();
       this->energy = energy;
-      this->energy_size = e.energy.size();
     }
   };
 
@@ -145,7 +141,6 @@ struct Nuclide_ {
   int n_precursor_; //!< Number of delayed neutron precursors
 
   rtBufferId<Reaction_, 1> reactions_; //!< Reactions
-  unsigned long num_reactions;
   rtBufferId<int, 1> index_inelastic_scatter_;
 
   __forceinline__ __device__ Nuclide_() {}

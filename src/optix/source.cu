@@ -94,7 +94,7 @@ RT_PROGRAM void sample_source() {
   // while (true) { FIXME
     // Sample energy spectrum
     site.E = watt_spectrum(0.988e6, 2.249e-6); // FIXME: energy_->sample();
-    // printf("site.E: %f\n", site.E);
+    rtPrintf("id: %u, site.E: %f\n", launch_index, site.E);
 
     // Resample if energy falls outside minimum or maximum particle energy
     // if (site.E < data::energy_max[p] && site.E > data::energy_min[p]) break; FIXME
