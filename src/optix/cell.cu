@@ -41,9 +41,12 @@ bool _contains(int32_t cell_id, Position r, Direction u, int32_t on_surface) {
 
   bool contains = false;
 
+  // FIXME: support multiple cells. Need to know which surface belongs to which
+  //  cell on the device
+
   if (num_hits == 0) {
     contains = false;
-  } else if (cell_id == 1) { // cube
+  } else if (cell_id == 1) { // bounding cube
     if (closest_surface_id <= 11) {
       if (num_hits % 2 == 0) {
         contains = false;
@@ -59,7 +62,7 @@ bool _contains(int32_t cell_id, Position r, Direction u, int32_t on_surface) {
     }
   }
 
-  else if (cell_id == 2) { // bunny
+  else if (cell_id == 2) { // inner object
     if (closest_surface_id <= 11) {
       contains = false;
     } else {

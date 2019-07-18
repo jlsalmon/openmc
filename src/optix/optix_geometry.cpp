@@ -56,7 +56,7 @@ void OptiXGeometry::create_context() {
 
   UsageReportLogger *logger;
   int usage_report_level = 2;
-  context->setUsageReportCallback(usage_report_callback, usage_report_level, logger);
+  // context->setUsageReportCallback(usage_report_callback, usage_report_level, logger);
 
   // FIXME: enabling exceptions somehow hides a misaligned address error...
   // context->setExceptionEnabled(RT_EXCEPTION_ALL, true);
@@ -168,14 +168,15 @@ void OptiXGeometry::visit(int shape_id, tinyobj::shape_t shape) {
   }
 
   // Materials
-  if (cell->id_ == 1) { // cube
+  // FIXME: support multiple cells
+  if (cell->id_ == 1) { // bounding cube
     cell->material_.push_back(MATERIAL_VOID);
   }
-  if (cell->id_ == 2) { // bunny
+  if (cell->id_ == 2) { // inner object
     cell->material_.push_back(model::materials[0]->id_);
   }
 
-  printf(">>> cell id=%d\n", cell->id_);
+  printf(">>> cell id=%d, shape name: %s\n", cell->id_, shape.name.c_str());
 }
 
 void OptiXGeometry::visit(int shape_id, int surface_id, float3 normal) {
