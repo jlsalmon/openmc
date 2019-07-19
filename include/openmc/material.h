@@ -113,7 +113,7 @@ struct Material_ {
   const char *name_; //!< Name of material
   int nuclide_[1]; //!< Indices in nuclides vector
   int element_[1]; //!< Indices in elements vector
-  double atom_density_[1]; //!< Nuclide atom density in [atom/b-cm]
+  float atom_density_[1]; //!< Nuclide atom density in [atom/b-cm]
 
   Material_() {}
 

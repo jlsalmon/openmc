@@ -11,7 +11,7 @@
 #include "openmc/reaction_product.h"
 
 __device__ __forceinline__
-void _sample_angle_energy(const ReactionProduct_& rp, int i, double E_in, double& E_out, double& mu) {
+void _sample_angle_energy(const ReactionProduct_& rp, int i, float E_in, float& E_out, float& mu) {
   AngleEnergy_::Type type = rp.distribution_type;
 
   if (type == AngleEnergy_::Type::uncorrelated) {
@@ -25,12 +25,12 @@ void _sample_angle_energy(const ReactionProduct_& rp, int i, double E_in, double
 }
 
 __device__ __forceinline__
-void _sample_reaction_product(const ReactionProduct_& rp, double E_in, double& E_out, double& mu)
+void _sample_reaction_product(const ReactionProduct_& rp, float E_in, float& E_out, float& mu)
 {
   auto n = rp.applicability_.size();
   if (n > 1) {
-    double prob = 0.0; // FIXME
-    double c = prn();
+    float prob = 0.0f; // FIXME
+    float c = prn();
     for (int i = 0; i < n; ++i) {
       // Determine probability that i-th energy distribution is sampled
       // prob += rp.applicability_[i](E_in);
@@ -39,7 +39,9 @@ void _sample_reaction_product(const ReactionProduct_& rp, double E_in, double& E
 
       // If i-th distribution is sampled, sample energy from the distribution
       if (c <= prob) {
+        rtPrintf("E_out before sampling angle energy (1): %f\n", E_out);
         _sample_angle_energy(rp, i, E_in, E_out, mu);
+        rtPrintf("E_out after sampling angle energy (1): %f\n", E_out);
         // rp.distribution_[i].sample(E_in, E_out, mu);
         // _sample_uncorrelated_angle_energy(rp.distribution_[i], E_in, E_out, mu);
         break;
@@ -48,7 +50,9 @@ void _sample_reaction_product(const ReactionProduct_& rp, double E_in, double& E
   } else {
     // If only one distribution is present, go ahead and sample it
     // rp.distribution_[0].sample(E_in, E_out, mu);
+    rtPrintf("E_out before sampling angle energy (2): %f\n", E_out);
     _sample_angle_energy(rp, 0, E_in, E_out, mu);
+    rtPrintf("E_out after sampling angle energy (2): %f\n", E_out);
     // _sample_uncorrelated_angle_energy(rp.distribution_[0], E_in, E_out, mu);
   }
 }

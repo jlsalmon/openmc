@@ -9,17 +9,17 @@
 using namespace openmc;
 
 __device__ __forceinline__
-double _sample_tabular(const Tabular_& t)
+float _sample_tabular(const Tabular_& t)
 {
-  rtPrintf("Tabular_.x_ buffer id: %d\n", t.x_.getId());
-  rtPrintf("Tabular_.c_ buffer id: %d\n", t.c_.getId());
-  rtPrintf("Tabular_.p_ buffer id: %d\n", t.p_.getId());
+  // rtPrintf("Tabular_.x_ buffer id: %d\n", t.x_.getId());
+  // rtPrintf("Tabular_.c_ buffer id: %d\n", t.c_.getId());
+  // rtPrintf("Tabular_.p_ buffer id: %d\n", t.p_.getId());
 
   // Sample value of CDF
-  double c = prn();
+  float c = prn();
 
   // Find first CDF bin which is above the sampled value
-  double c_i = t.c_[0];
+  float c_i = t.c_[0];
   int i;
   size_t n = t.c_.size();
   for (i = 0; i < n - 1; ++i) {
@@ -28,26 +28,26 @@ double _sample_tabular(const Tabular_& t)
   }
 
   // Determine bounding PDF values
-  double x_i = t.x_[i];
-  double p_i = t.p_[i];
+  float x_i = t.x_[i];
+  float p_i = t.p_[i];
 
   if (t.interp_ == Interpolation::histogram) {
     // Histogram interpolation
-    if (p_i > 0.0) {
+    if (p_i > 0.0f) {
       return x_i + (c - c_i)/p_i;
     } else {
       return x_i;
     }
   } else {
     // Linear-linear interpolation
-    double x_i1 = t.x_[i + 1];
-    double p_i1 = t.p_[i + 1];
+    float x_i1 = t.x_[i + 1];
+    float p_i1 = t.p_[i + 1];
 
-    double m = (p_i1 - p_i)/(x_i1 - x_i);
-    if (m == 0.0) {
+    float m = (p_i1 - p_i)/(x_i1 - x_i);
+    if (m == 0.0f) {
       return x_i + (c - c_i)/p_i;
     } else {
-      return x_i + (sqrt(fmax(0.0, p_i*p_i + 2*m*(c - c_i))) - p_i)/m;
+      return x_i + (sqrtf(fmaxf(0.0f, p_i*p_i + 2*m*(c - c_i))) - p_i)/m;
     }
   }
 }

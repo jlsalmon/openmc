@@ -7,11 +7,11 @@
 #include "openmc/endf.h"
 
 __device__ __forceinline__
-double _polynomial(const Polynomial_& p, double x)
+float _polynomial(const Polynomial_& p, float x)
 {
   // Use Horner's rule to evaluate polynomial. Note that coefficients are
   // ordered in increasing powers of x.
-  double y = 0.0;
+  float y = 0.0f;
   for (int i = 0; i < p.num_coeffs; ++i) {
     auto c = p.coef_[i];
     y = y*x + c;
@@ -20,12 +20,12 @@ double _polynomial(const Polynomial_& p, double x)
 }
 
 __device__ __forceinline__
-double _tabulated_1d(const Tabulated1D_& t, double x)
+float _tabulated_1d(const Tabulated1D_& t, float x)
 {
-  rtPrintf("Tabulated1D_.x_ buffer id: %d\n", t.x_.getId());
-  rtPrintf("Tabulated1D_.int_ buffer id: %d\n", t.int_.getId());
-  rtPrintf("Tabulated1D_.nbt_ buffer id: %d\n", t.nbt_.getId());
-  rtPrintf("Tabulated1D_.y_ buffer id: %d\n", t.y_.getId());
+  // rtPrintf("Tabulated1D_.x_ buffer id: %d\n", t.x_.getId());
+  // rtPrintf("Tabulated1D_.int_ buffer id: %d\n", t.int_.getId());
+  // rtPrintf("Tabulated1D_.nbt_ buffer id: %d\n", t.nbt_.getId());
+  // rtPrintf("Tabulated1D_.y_ buffer id: %d\n", t.y_.getId());
 
   // find which bin the abscissa is in -- if the abscissa is outside the
   // tabulated range, the first or last point is chosen, i.e. no interpolation
@@ -58,13 +58,13 @@ double _tabulated_1d(const Tabulated1D_& t, double x)
   if (interp == Interpolation::histogram) return t.y_[i];
 
   // determine bounding values
-  double x0 = t.x_[i];
-  double x1 = t.x_[i + 1];
-  double y0 = t.y_[i];
-  double y1 = t.y_[i + 1];
+  float x0 = t.x_[i];
+  float x1 = t.x_[i + 1];
+  float y0 = t.y_[i];
+  float y1 = t.y_[i + 1];
 
   // determine interpolation factor and interpolated value
-  double r;
+  float r;
   switch (interp) {
     case Interpolation::lin_lin:
       r = (x - x0)/(x1 - x0);

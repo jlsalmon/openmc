@@ -171,16 +171,16 @@ public:
 };
 
 struct Tabular_ {
-  rtBufferId<double, 1> x_; //!< tabulated independent variable
-  rtBufferId<double, 1> p_; //!< tabulated probability density
-  rtBufferId<double, 1> c_; //!< cumulative distribution at tabulated values
+  rtBufferId<float, 1> x_; //!< tabulated independent variable
+  rtBufferId<float, 1> p_; //!< tabulated probability density
+  rtBufferId<float, 1> c_; //!< cumulative distribution at tabulated values
   Interpolation interp_;  //!< interpolation rule
 
   __device__ __forceinline__ Tabular_() {}
 
-  __device__ __forceinline__ Tabular_(rtBufferId<double, 1> x_,
-                                      rtBufferId<double, 1> p_,
-                                      rtBufferId<double, 1> c_,
+  __device__ __forceinline__ Tabular_(rtBufferId<float, 1> x_,
+                                      rtBufferId<float, 1> p_,
+                                      rtBufferId<float, 1> c_,
                                       Interpolation interp_) {
     this->x_ = x_;
     this->p_ = p_;

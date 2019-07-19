@@ -29,7 +29,7 @@ void _cross_surface(Particle_ &p)
   // if (settings::verbosity >= 10 || simulation::trace) {
   //   write_message("    Crossing surface " + std::to_string(surf->id_));
   // }
-  // printf("Crossing surface %i\n", surface_id);
+  rtPrintf("Crossing surface %i\n", surface_id);
 
   if (boundary_cond /*surf->bc_*/ == _BC_VACUUM /*&& (settings::run_mode != RUN_MODE_PLOTTING)*/) {
     // =======================================================================
@@ -57,7 +57,7 @@ void _cross_surface(Particle_ &p)
     // if (settings::verbosity >= 10 || simulation::trace) {
     //   write_message("    Leaked out of surface " + std::to_string(surf->id_));
     // }
-    // printf("Leaked out of surface %i\n", surface_id);
+    rtPrintf("Leaked out of surface %i\n", surface_id);
     return;
 
   } else if (boundary_cond /*surf->bc_*/ == _BC_REFLECT/* && (settings::run_mode != RUN_MODE_PLOTTING)*/) {
@@ -235,7 +235,7 @@ void _cross_surface(Particle_ &p)
 }
 
 __device__ __forceinline__
-void _from_source(Particle_ &p, const Particle::Bank* src)
+void _from_source(Particle_ &p, const Particle_::Bank_* src)
 {
   // reset some attributes
   p.clear();
@@ -287,7 +287,7 @@ void _transport(Particle_ &p) {
   // if (settings::run_CE) { // FIXME: add settings as variables
   // for (auto& micro : neutron_xs_) micro.last_E = 0.0;
   for (int i = 0; i < num_nuclides /*data::nuclides.size()*/; ++i) {  // FIXME: copy data::nuclides as buffer
-    p.neutron_xs_[i].last_E = 0.0;
+    p.neutron_xs_[i].last_E = 0.0f;
   }
   // }
 
@@ -311,6 +311,10 @@ void _transport(Particle_ &p) {
     p.E_last_ = p.E_;
     p.u_last_ = p.u();
     p.r_last_ = p.r();
+
+    if (p.u().z == 0.f) { //F IXME: this is necessary for the buddha model.. but why?
+      p.u() = {0.f, 0.f, 1.f};
+    }
 
     // If the cell hasn't been determined based on the particle's location,
     // initiate a search for the current cell. This generally happens at the
@@ -359,10 +363,10 @@ void _transport(Particle_ &p) {
       //   g_last_ = g_;
       // }
     } else {
-      p.macro_xs_.total      = 0.0;
-      p.macro_xs_.absorption = 0.0;
-      p.macro_xs_.fission    = 0.0;
-      p.macro_xs_.nu_fission = 0.0;
+      p.macro_xs_.total      = 0.0f;
+      p.macro_xs_.absorption = 0.0f;
+      p.macro_xs_.fission    = 0.0f;
+      p.macro_xs_.nu_fission = 0.0f;
     }
 
     // Find the distance to the nearest boundary
@@ -375,18 +379,18 @@ void _transport(Particle_ &p) {
     // printf("p.macro_xs_.nu_fission: %lf\n", p.macro_xs_.nu_fission);
 
     // Sample a distance to collision
-    double d_collision;
+    float d_collision;
     if (p.type_ == Particle::Type::electron ||
         p.type_ == Particle::Type::positron) {
-      d_collision = 0.0;
-    } else if (p.macro_xs_.total == 0.0) {
+      d_collision = 0.0f;
+    } else if (p.macro_xs_.total == 0.0f) {
       d_collision = INFINITY;
     } else {
-      d_collision = -log(prn()) / p.macro_xs_.total;
+      d_collision = -logf(prn()) / p.macro_xs_.total;
     }
 
     // Select smaller of the two distances
-    double distance = fmin(boundary.distance, d_collision);
+    float distance = fminf(boundary.distance, d_collision);
     // printf("d_collision=%f\n", d_collision);
 
     // Advance particle
@@ -481,7 +485,7 @@ void _transport(Particle_ &p) {
 
       // Reset banked weight during collision
       p.n_bank_ = 0;
-      p.wgt_bank_ = 0.0;
+      p.wgt_bank_ = 0.0f;
       for (int& v : p.n_delayed_bank_) v = 0;
 
       // Reset fission logical
@@ -519,7 +523,7 @@ void _transport(Particle_ &p) {
     if (n_event == MAX_EVENTS) {
       // warning("Particle " + std::to_string(id_) +
       //         " underwent maximum number of events.");
-      printf("Particle %lli underwent maximum number of events.\n", p.id_);
+      printf("Particle %lli underwent maximum number of events at index %d.\n", p.id_, launch_index);
       p.alive_ = false;
     }
 

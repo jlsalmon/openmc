@@ -24,7 +24,7 @@ __device__ const uint64_t prn_mod    {0x8000000000000000};      // 2^63
 __device__ const uint64_t prn_mask   {0x7fffffffffffffff};      // 2^63 - 1
 __device__ const uint64_t prn_stride {152917LL};                // stride between
 //   particles
-__device__ const double   prn_norm   {1.0 / prn_mod};           // 2^-63
+__device__ const float   prn_norm   {1.0f / prn_mod};           // 2^-63
 
 // Current PRNG state
 // __device__ uint64_t prn_seed[_N_STREAMS];  // current seed
@@ -32,7 +32,7 @@ __device__ const double   prn_norm   {1.0 / prn_mod};           // 2^-63
 // #pragma omp threadprivate(prn_seed, stream)
 
 __forceinline__ __device__
-double prn()
+float prn()
 {
   // This algorithm uses bit-masking to find the next integer(8) value to be
   // used to calculate the random number.
@@ -42,7 +42,7 @@ double prn()
 
   // Once the integer is calculated, we just need to divide by 2**m,
   // represented here as multiplying by a pre-calculated factor
-  double result = prn_seed_buffer[offset + stream_buffer[launch_index]] * prn_norm;
+  float result = prn_seed_buffer[offset + stream_buffer[launch_index]] * prn_norm;
   // printf("prn(): %f\n", result);
   return result;
 }
@@ -83,7 +83,7 @@ future_seed(uint64_t n, uint64_t seed)
 }
 
 __forceinline__ __device__
-double future_prn(int64_t n)
+float future_prn(int64_t n)
 {
   int offset = launch_index * _N_STREAMS;
   return future_seed(static_cast<uint64_t>(n), prn_seed_buffer[offset + stream_buffer[launch_index]]) * prn_norm;

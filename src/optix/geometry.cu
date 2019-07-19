@@ -64,8 +64,8 @@ bool _find_cell_inner(Particle_& p, const NeighborList* neighbor_list)
       if (c.universe_ /*model::cells[i_cell]->universe_*/ != i_universe) continue;
 
       // Check if this cell contains the particle.
-      Position r {p.r_local()};
-      Direction u {p.u_local()};
+      Position_ r {p.r_local()};
+      Direction_ u {p.u_local()};
       auto surf = p.surface_;
       if (/*model::cells[i_cell]->*/_contains(c.id_, r, u, surf)) {
         p.coord_[p.n_coord_-1].cell = i_cell;
@@ -263,12 +263,12 @@ bool _find_cell(Particle_& p, bool use_neighbor_lists)
 
 
 __forceinline__ __device__
-int _openmc_find_cell(const double* xyz, int32_t* index, int32_t* instance)
+int _openmc_find_cell(const float* xyz, int32_t* index, int32_t* instance)
 {
   Particle_ p;
 
-  p.r() = Position{xyz};
-  p.u() = {0.0, 0.0, 1.0};
+  p.r() = Position_{xyz};
+  p.u() = {0.0f, 0.0f, 1.0f};
 
   if (!_find_cell(p, false)) {
     printf("Could not find cell at position (%lf, %lf, %lf).\n",
@@ -287,18 +287,18 @@ int _openmc_find_cell(const double* xyz, int32_t* index, int32_t* instance)
 
 
 __device__ __forceinline__
-BoundaryInfo _distance_to_boundary(Particle_& p)
+BoundaryInfo_ _distance_to_boundary(Particle_& p)
 {
-  BoundaryInfo info;
-  double d_lat = INFINITY;
-  double d_surf = INFINITY;
+  BoundaryInfo_ info;
+  float d_lat = INFINITY;
+  float d_surf = INFINITY;
   int32_t level_surf_cross;
   // std::array<int, 3> level_lat_trans {};
 
   // Loop over each coordinate level.
   for (int i = 0; i < p.n_coord_; i++) {
-    Position r {p.coord_[i].r};
-    Direction u {p.coord_[i].u};
+    Position_ r {p.coord_[i].r};
+    Direction_ u {p.coord_[i].u};
     // Cell_& c {*model::cells[p.coord__[i].cell]}; // FIXME: cell objects
     Cell_& c {cell_buffer[i]};
 
@@ -346,9 +346,9 @@ BoundaryInfo _distance_to_boundary(Particle_& p)
     // If the boundary on this coordinate level is coincident with a boundary on
     // a higher level then we need to make sure that the higher level boundary
     // is selected.  This logic must consider floating point precision.
-    double& d = info.distance;
-    if (d_surf < d_lat - FP_COINCIDENT) {
-      if (d == INFINITY || (d - d_surf)/d >= FP_REL_PRECISION) {
+    float& d = info.distance;
+    if (d_surf < d_lat - (float) FP_COINCIDENT) {
+      if (d == INFINITY || (d - d_surf)/d >= (float) FP_REL_PRECISION) {
         d = d_surf;
 
         // If the cell is not simple, it is possible that both the negative and
@@ -358,11 +358,11 @@ BoundaryInfo _distance_to_boundary(Particle_& p)
         if (c.simple_) {
           info.surface_index = level_surf_cross;
         } else {
-          Position r_hit = r + d_surf * u; // FIXME: this normal calculation might be wrong
+          Position_ r_hit = r + d_surf * u; // FIXME: this normal calculation might be wrong
           // Surface& surf {*model::surfaces[std::abs(level_surf_cross)-1]};
           // Direction norm = surf.normal(r_hit);
           float3 normal = normal_buffer[level_surf_cross];
-          Direction norm = {normal.x, normal.y, normal.z};
+          Direction_ norm = {normal.x, normal.y, normal.z};
           if (u.dot(norm) > 0) {
             info.surface_index = fabsf(level_surf_cross);
           } else {

@@ -41,6 +41,12 @@ struct BoundaryInfo {
 #endif
 };
 
+struct BoundaryInfo_ {
+  float distance {INFINITY};   //!< distance to nearest boundary
+  int surface_index {0}; //!< if boundary is surface, index in surfaces vector
+  int coord_level;   //!< coordinate level after crossing boundary
+};
+
 //==============================================================================
 //! Check two distances by coincidence tolerance
 //==============================================================================

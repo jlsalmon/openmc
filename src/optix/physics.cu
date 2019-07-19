@@ -16,7 +16,7 @@ using namespace openmc;
 
 
 __device__ __forceinline__
-void _create_secondary(Particle_& p, Direction u, double E, Particle::Type type)
+void _create_secondary(Particle_& p, Direction_ u, float E, Particle::Type type)
 {
   // simulation::secondary_bank.emplace_back();
 
@@ -35,33 +35,39 @@ void _inelastic_scatter(const Nuclide_& nuc, const Reaction_& rx, Particle_& p)
 {
   // printf("inelastic scatter\n");
   // copy energy of neutron
-  double E_in = p.E_;
+  float E_in = p.E_;
 
   // sample outgoing energy and scattering cosine
-  double E;
-  double mu;
+  float E;
+  float mu;
   // rx.products_[0].sample(E_in, E, mu);
-  rtPrintf("Sampling reaction product\n");
+  rtPrintf("p.E_ before sampling reaction product: %f\n", p.E_);
   _sample_reaction_product(rx.products_[0], E_in, E, mu);
+  rtPrintf("p.E_ after sampling reaction product: %f\n", p.E_);
+  rtPrintf("E before: %f\n", E);
 
   // if scattering system is in center-of-mass, transfer cosine of scattering
   // angle and outgoing energy from CM to LAB
   if (rx.scatter_in_cm_) {
-    double E_cm = E;
+    float E_cm = E;
 
     // determine outgoing energy in lab
-    double A = nuc.awr_;
-    E = E_cm + (E_in + 2.0*mu*(A + 1.0) * sqrtf(E_in*E_cm))
-               / ((A + 1.0)*(A + 1.0));
+    float A = nuc.awr_;
+    E = E_cm + (E_in + 2.0f*mu*(A + 1.0f) * sqrtf(E_in*E_cm))
+               / ((A + 1.0f)*(A + 1.0f));
 
     // determine outgoing angle in lab
-    mu = mu*sqrtf(E_cm/E) + 1.0/(A+1.0) * sqrtf(E_in/E);
+    mu = mu*sqrtf(E_cm/E) + 1.0f/(A+1.0f) * sqrtf(E_in/E);
   }
+
+  rtPrintf("p.E_ after outgoing energy in lab: %f\n", p.E_);
+  rtPrintf("E_in: %f\n", E_in);
+  rtPrintf("E after: %f\n", E);
 
   // Because of floating-point roundoff, it may be possible for mu to be
   // outside of the range [-1,1). In these cases, we just set mu to exactly -1
   // or 1
-  if (fabsf(mu) > 1.0) mu = copysignf(1.0, mu);
+  if (fabsf(mu) > 1.0f) mu = copysignf(1.0f, mu);
 
   // Set outgoing energy and scattering angle
   p.E_ = E;
@@ -73,7 +79,7 @@ void _inelastic_scatter(const Nuclide_& nuc, const Reaction_& rx, Particle_& p)
 
   // evaluate yield
   // double yield = (*rx->products_[0].yield_)(E_in); // FIXME: yield: is this the right distro?
-  double yield;
+  float yield;
   if (rx.products_[0].is_polynomial_yield) {
     rtPrintf("Polynomial yield\n");
     yield = _polynomial(rx.products_[0].polynomial_yield_, E_in);
@@ -148,8 +154,8 @@ void _inelastic_scatter(const Nuclide_& nuc, const Reaction_& rx, Particle_& p)
 
 
 __device__ __forceinline__
-Direction _sample_target_velocity(const Nuclide_& nuc, double E, Direction u,
-                                 Direction v_neut, double xs_eff, double kT)
+Direction_ _sample_target_velocity(const Nuclide_& nuc, float E, Direction_ u,
+                                 Direction_ v_neut, float xs_eff, float kT)
 {
   // // check if nuclide is a resonant scatterer
   // ResScatMethod sampling_method;
@@ -301,26 +307,26 @@ Direction _sample_target_velocity(const Nuclide_& nuc, double E, Direction u,
 
 
 __device__ __forceinline__
-void _elastic_scatter(int i_nuclide, const Reaction_& rx, double kT, Particle_& p)
+void _elastic_scatter(int i_nuclide, const Reaction_& rx, float kT, Particle_& p)
 {
   // get pointer to nuclide
   const auto& nuc = nuclide; // FIXME: {data::nuclides[i_nuclide]};
 
-  double vel = sqrtf(p.E_);
-  double awr = nuc.awr_;
+  float vel = sqrtf(p.E_);
+  float awr = nuc.awr_;
 
   // Neutron velocity in LAB
-  Direction v_n = vel*p.u();
+  Direction_ v_n = vel*p.u();
 
   // Sample velocity of target nucleus
-  Direction v_t {};
+  Direction_ v_t {};
   if (!p.neutron_xs_[i_nuclide].use_ptable) {
     v_t = _sample_target_velocity(nuc, p.E_, p.u(), v_n,
                                  p.neutron_xs_[i_nuclide].elastic, kT);
   }
 
   // Velocity of center-of-mass
-  Direction v_cm = (v_n + awr*v_t)/(awr + 1.0);
+  Direction_ v_cm = (v_n + awr*v_t)/(awr + 1.0f);
 
   // Transform to CM frame
   v_n -= v_cm;
@@ -330,7 +336,7 @@ void _elastic_scatter(int i_nuclide, const Reaction_& rx, double kT, Particle_& 
 
   // Sample scattering angle, checking if it is an ncorrelated angle-energy
   // distribution
-  double mu_cm;
+  float mu_cm;
 
   auto &product = rx.products_[0];
   // auto d_ = (UncorrelatedAngleEnergy_&) d;
@@ -363,11 +369,11 @@ void _elastic_scatter(int i_nuclide, const Reaction_& rx, double kT, Particle_& 
     rtPrintf("Sampling angle dist from _elastic_scatter\n");
     mu_cm = _sample_angle_distribution(d.angle_, p.E_);
   } else {
-    mu_cm = 2.0*prn() - 1.0;
+    mu_cm = 2.0f*prn() - 1.0f;
   }
 
   // Determine direction cosines in CM
-  Direction u_cm = v_n/vel;
+  Direction_ u_cm = v_n/vel;
 
   // Rotate neutron velocity vector to new angle -- note that the speed of the
   // neutron in CM does not change in elastic scattering. However, the speed
@@ -390,7 +396,7 @@ void _elastic_scatter(int i_nuclide, const Reaction_& rx, double kT, Particle_& 
   // Because of floating-point roundoff, it may be possible for mu_lab to be
   // outside of the range [-1,1). In these cases, we just set mu_lab to exactly
   // -1 or 1
-  if (fabsf(p.mu_) > 1.0) p.mu_ = copysignf(1.0, p.mu_);
+  if (fabsf(p.mu_) > 1.0f) p.mu_ = copysignf(1.0f, p.mu_);
 }
 
 
@@ -416,18 +422,18 @@ __device__ __forceinline__
 void _scatter(Particle_& p, int i_nuclide)
 {
   // copy incoming direction
-  Direction u_old {p.u()};
+  Direction_ u_old {p.u()};
 
   // Get pointer to nuclide and grid index/interpolation factor
   const auto& nuc = nuclide; // FIXME: {data::nuclides[i_nuclide]};
   const auto& micro {p.neutron_xs_[i_nuclide]};
   int i_temp =  micro.index_temp;
   int i_grid =  micro.index_grid;
-  double f = micro.interp_factor;
+  float f = micro.interp_factor;
 
   // For tallying purposes, this routine might be called directly. In that
   // case, we need to sample a reaction via the cutoff variable
-  double cutoff = prn() * (micro.total - micro.absorption);
+  float cutoff = prn() * (micro.total - micro.absorption);
   bool sampled = false;
 
   // Calculate elastic cross section if it wasn't precalculated
@@ -461,7 +467,7 @@ void _scatter(Particle_& p, int i_nuclide)
   rtPrintf("i_temp: %i\n", i_temp);
   rtPrintf("i_grid: %i\n", i_grid);
 
-  double prob = micro.elastic - micro.thermal;
+  float prob = micro.elastic - micro.thermal;
   rtPrintf("prob: %lf\n", prob);
 
   if (prob > cutoff) {
@@ -470,7 +476,7 @@ void _scatter(Particle_& p, int i_nuclide)
 
     // Determine temperature
     // double kT = nuc.multipole_ ? p.sqrtkT_*p.sqrtkT_ : nuc.kTs_[i_temp]; // FIXME: multipole
-    double kT = nuc.kTs_[i_temp];
+    float kT = nuc.kTs_[i_temp];
 
     // Perform collision physics for elastic scattering
     _elastic_scatter(i_nuclide, nuc.reactions_[0], kT, p);
@@ -523,7 +529,7 @@ void _scatter(Particle_& p, int i_nuclide)
       rtPrintf("xs.value[i_grid - xs.threshold + 1]: %lf\n", xs.value_[i_grid - xs.threshold + 1]);
 
       // add to cumulative probability
-      prob += (1.0 - f)*xs.value_[i_grid - xs.threshold] +
+      prob += (1.0f - f)*xs.value_[i_grid - xs.threshold] +
               f*xs.value_[i_grid - xs.threshold + 1];
 
       rtPrintf("prob is now: %lf\n", prob);
@@ -594,39 +600,39 @@ void _absorption(Particle_& p, int i_nuclide)
 
 
 __device__ __forceinline__
-void _sample_fission_neutron(int i_nuclide, const Reaction_& rx, double E_in, Particle::Bank& site)
+void _sample_fission_neutron(int i_nuclide, const Reaction_& rx, float E_in, Particle_::Bank_& site)
 {
   // Sample cosine of angle -- fission neutrons are always emitted
   // isotropically. Sometimes in ACE data, fission reactions actually have
   // an angular distribution listed, but for those that do, it's simply just
   // a uniform distribution in mu
-  double mu = 2.0 * prn() - 1.0;
+  float mu = 2.0f * prn() - 1.0f;
   // Sample azimuthal angle uniformly in [0,2*pi)
-  double phi = 2.0*PI*prn();
+  float phi = 2.0f*M_PIf*prn();
 
   site.u.x = mu;
-  site.u.y = sqrt(1.0 - mu*mu) * cosf(phi);
-  site.u.z = sqrt(1.0 - mu*mu) * sinf(phi);
+  site.u.y = sqrtf(1.0f - mu*mu) * cosf(phi);
+  site.u.z = sqrtf(1.0f - mu*mu) * sinf(phi);
 
   // Determine total nu, delayed nu, and delayed neutron fraction
   const auto& nuc = nuclide; // FIXME: {data::nuclides[i_nuclide]};
-  double nu_t = _nu(nuc, E_in, Nuclide::EmissionMode::total);
-  double nu_d = _nu(nuc, E_in, Nuclide::EmissionMode::delayed);
-  double beta = nu_d / nu_t;
+  float nu_t = _nu(nuc, E_in, Nuclide::EmissionMode::total);
+  float nu_d = _nu(nuc, E_in, Nuclide::EmissionMode::delayed);
+  float beta = nu_d / nu_t;
 
   if (prn() < beta) {
-    // printf("Delayed neutron sampled\n");
+    rtPrintf("Delayed neutron sampled\n");
     // ====================================================================
     // DELAYED NEUTRON SAMPLED
 
     // sampled delayed precursor group
-    double xi = prn()*nu_d; // FIXME
-    double prob = 0.0;
+    float xi = prn()*nu_d; // FIXME
+    float prob = 0.0f;
     int group;
     for (group = 1; group < nuc.n_precursor_; ++group) {
       // determine delayed neutron precursor yield for group j
-      // double yield = (rx.products_[group].yield_)(E_in);
-      double yield;
+      // float yield = (rx.products_[group].yield_)(E_in);
+      float yield;
       if (rx.products_[group].is_polynomial_yield) {
         yield = _polynomial(rx.products_[group].polynomial_yield_, E_in);
       } else {
@@ -669,7 +675,7 @@ void _sample_fission_neutron(int i_nuclide, const Reaction_& rx, double E_in, Pa
     }
 
   } else {
-    // printf("Prompt neutron sampled\n");
+    rtPrintf("Prompt neutron sampled\n");
     // ====================================================================
     // PROMPT NEUTRON SAMPLED
 
@@ -703,22 +709,22 @@ void _create_fission_sites(Particle_& p, int i_nuclide, const Reaction_& rx)
 {
   // If uniform fission source weighting is turned on, we increase or decrease
   // the expected number of fission sites produced
-  double weight = /*settings::ufs_on ? ufs_get_weight(p) :*/ 1.0; // FIXME: ufs
+  float weight = /*settings::ufs_on ? ufs_get_weight(p) :*/ 1.0f; // FIXME: ufs
 
   // Determine the expected number of neutrons produced
-  double nu_t = p.wgt_ / keff * weight * p.neutron_xs_[
+  float nu_t = p.wgt_ / keff * weight * p.neutron_xs_[
     i_nuclide].nu_fission / p.neutron_xs_[i_nuclide].total;
 
-  // printf("nu_t: %lf\n", nu_t);
-  // printf("keff: %f\n", keff);
-  // printf("p.neutron_xs_[i_nuclide].nu_fission: %lf\n", p.neutron_xs_[i_nuclide].nu_fission);
-  // printf("p.neutron_xs_[i_nuclide].total: %lf\n", p.neutron_xs_[i_nuclide].total);
+  rtPrintf("nu_t: %lf\n", nu_t);
+  rtPrintf("keff: %f\n", keff);
+  rtPrintf("p.neutron_xs_[i_nuclide].nu_fission: %lf\n", p.neutron_xs_[i_nuclide].nu_fission);
+  rtPrintf("p.neutron_xs_[i_nuclide].total: %lf\n", p.neutron_xs_[i_nuclide].total);
 
   // Sample the number of neutrons produced
   int nu = static_cast<int>(nu_t);
   if (prn() <= (nu_t - nu)) ++nu;
 
-  // printf("nu: %d\n", nu);
+  rtPrintf("nu: %d\n", nu);
 
   // Begin banking the source neutrons
   // First, if our bank is full then don't continue
@@ -726,7 +732,7 @@ void _create_fission_sites(Particle_& p, int i_nuclide, const Reaction_& rx)
 
   // Initialize the counter of delayed neutrons encountered for each delayed
   // group.
-  double nu_d[MAX_DELAYED_GROUPS] = {0.};
+  float nu_d[MAX_DELAYED_GROUPS] = {0.f};
 
   p.fission_ = true;
   for (int i = 0; i < nu; ++i) {
@@ -739,7 +745,7 @@ void _create_fission_sites(Particle_& p, int i_nuclide, const Reaction_& rx)
     // Bank source neutrons by copying the particle data
     site.r = p.r();
     site.particle = Particle::Type::neutron;
-    site.wgt = 1. / weight;
+    site.wgt = 1.f / weight;
 
     // printf("site.wgt: %lf\n", site.wgt);
 
@@ -817,17 +823,17 @@ int _sample_nuclide(const Particle_& p)
   // printf("Sampling nuclide\n");
 
   // Sample cumulative distribution function
-  double cutoff = prn() * p.macro_xs_.total;
+  float cutoff = prn() * p.macro_xs_.total;
 
   // Get pointers to nuclide/density arrays
   const auto& mat = material; // FIXME: {model::materials[p.material_]};
   int n = 1; // FIXME: mat->nuclide_.size();
 
-  double prob = 0.0;
+  float prob = 0.0f;
   for (int i = 0; i < n; ++i) {
     // Get atom density
     int i_nuclide = mat.nuclide_[i];
-    double atom_density = mat.atom_density_[i];
+    float atom_density = mat.atom_density_[i];
 
     // Increment probability to compare to cutoff
     prob += atom_density * p.neutron_xs_[i_nuclide].total;
@@ -837,7 +843,12 @@ int _sample_nuclide(const Particle_& p)
   // If we reach here, no nuclide was sampled
   // p.write_restart(); // FIXME: particle restart
   // throw std::runtime_error{"Did not sample any nuclide during collision."};
-  printf("ERROR: Did not sample any nuclide during collision.\n");
+  rtPrintf("ERROR: Did not sample any nuclide during collision at index %d.\n", launch_index);
+  rtPrintf("cutoff: %f\n", cutoff);
+  rtPrintf("p.macro_xs_.total: %f\n", p.macro_xs_.total);
+  rtPrintf("p.neutron_xs_[i_nuclide].total: %f\n", p.neutron_xs_[0].total);
+  rtPrintf("prob: %f\n", prob);
+  rtPrintf("atom_density: %f\n", mat.atom_density_[0]);
 }
 
 
@@ -885,17 +896,17 @@ void _sample_neutron_reaction(Particle_& p)
   // If survival biasing is being used, the following subroutine adjusts the
   // weight of the particle. Otherwise, it checks to see if absorption occurs
 
-  if (p.neutron_xs_[i_nuclide].absorption > 0.0) {
-    // printf("Absorption\n");
+  if (p.neutron_xs_[i_nuclide].absorption > 0.0f) {
+    rtPrintf("Absorption\n");
     _absorption(p, i_nuclide);
   } else {
-    p.wgt_absorb_ = 0.0;
+    p.wgt_absorb_ = 0.0f;
   }
   if (!p.alive_) return;
 
   // Sample a scattering reaction and determine the secondary energy of the
   // exiting neutron
-  // printf("Scatter\n");
+  rtPrintf("Scatter\n");
   _scatter(p, i_nuclide);
 
   // Advance URR seed stream 'N' times after energy changes
@@ -916,7 +927,7 @@ void _sample_neutron_reaction(Particle_& p)
 __device__ __forceinline__
 void _collision(Particle_& p)
 {
-  // printf("collision\n");
+  rtPrintf("collision\n");
 
   // Add to collision counter for particle
   ++(p.n_collision_);
@@ -939,9 +950,9 @@ void _collision(Particle_& p)
 
   // Kill particle if energy falls below cutoff
   int type = static_cast<int>(p.type_);
-  if (p.E_ < 0.0/*FIXME: settings::energy_cutoff[type]*/) {
+  if (p.E_ < 0.0f/*FIXME: settings::energy_cutoff[type]*/) {
     p.alive_ = false;
-    p.wgt_ = 0.0;
+    p.wgt_ = 0.0f;
   }
 
   // // Display information about collision

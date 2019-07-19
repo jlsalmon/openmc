@@ -65,12 +65,12 @@ public:
 };
 
 struct Polynomial_ {
-  rtBufferId<double, 1> coef_;  //!< Polynomial coefficients
+  rtBufferId<float, 1> coef_;  //!< Polynomial coefficients
   unsigned long num_coeffs;
 
   __device__ __forceinline__ Polynomial_() {}
 
-  __device__ __forceinline__ Polynomial_(rtBufferId<double, 1> coef_, unsigned long num_coeffs) {
+  __device__ __forceinline__ Polynomial_(rtBufferId<float, 1> coef_, unsigned long num_coeffs) {
     this->coef_ = coef_;
     this->num_coeffs = num_coeffs;
   }
@@ -111,16 +111,16 @@ struct Tabulated1D_ {
   rtBufferId<int, 1> nbt_; //!< values separating interpolation regions
   rtBufferId<Interpolation, 1> int_; //!< interpolation schemes
   size_t n_pairs_; //!< number of (x,y) pairs
-  rtBufferId<double, 1> x_; //!< values of abscissa
-  rtBufferId<double, 1> y_; //!< values of ordinate
+  rtBufferId<float, 1> x_; //!< values of abscissa
+  rtBufferId<float, 1> y_; //!< values of ordinate
 
   __device__ __forceinline__ Tabulated1D_() {}
 
   __device__ __forceinline__ Tabulated1D_(const Tabulated1D &t,
                                           rtBufferId<int, 1> nbt_,
                                           rtBufferId<Interpolation, 1> int_,
-                                          rtBufferId<double, 1> x_,
-                                          rtBufferId<double, 1> y_) {
+                                          rtBufferId<float, 1> x_,
+                                          rtBufferId<float, 1> y_) {
     n_regions_ = t.n_regions_;
     n_pairs_ = t.n_pairs_;
     this->nbt_ = nbt_;

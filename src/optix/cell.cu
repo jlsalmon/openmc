@@ -8,7 +8,7 @@ using namespace optix;
 using namespace openmc;
 
 __forceinline__ __device__
-bool _contains(int32_t cell_id, Position r, Direction u, int32_t on_surface) {
+bool _contains(int32_t cell_id, Position_ r, Direction_ u, int32_t on_surface) {
   PerRayData payload = {};
 
   int num_hits = 0;
@@ -36,7 +36,7 @@ bool _contains(int32_t cell_id, Position r, Direction u, int32_t on_surface) {
     }
   }
 
-  // printf("id: %d, dist: %f, nhits: %d\n",
+  // printf("closest_surf: %d, dist: %f, nhits: %d\n",
   //   closest_surface_id, closest_intersection_distance, num_hits);
 
   bool contains = false;
@@ -76,7 +76,6 @@ bool _contains(int32_t cell_id, Position r, Direction u, int32_t on_surface) {
     printf(">>> ERROR: Only two cells are currently supported\n");
   }
 
-  // printf(">>> _contains(cell=%d): %s\n", cell_id, contains? "TRUE": "FALSE");
   // printf(">>> _contains(cell=%d, contains=%s, origin=(%f, %f, %f), direction=(%f, %f, %f))\n",
   //        cell_id, contains? "TRUE": "FALSE", r.x, r.y, r.z,
   //        u.x, u.y, u.z);

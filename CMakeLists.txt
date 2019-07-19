@@ -155,6 +155,8 @@ include_directories(
         include
         ${HDF5_INCLUDE_DIRS}
         vendor/pugixml/
+        vendor/xtensor/include
+        vendor/xtl/include
 )
 
 ##################################################################

@@ -57,7 +57,7 @@ public:
 struct ReactionProduct_ {
   Particle::Type particle_; //!< Particle type
   ReactionProduct::EmissionMode emission_mode_; //!< Emission mode
-  double decay_rate_; //!< Decay rate (for delayed neutron precursors) in [1/s]
+  float decay_rate_; //!< Decay rate (for delayed neutron precursors) in [1/s]
   bool is_polynomial_yield; // FIXME: find a better way of handling this on the device
   Polynomial_ polynomial_yield_; //!< Yield as a function of energy
   Tabulated1D_ tabulated_1d_yield_;

@@ -279,14 +279,22 @@ void initialize_source()
 
       // Retrieve output buffer of banked source sites
       Buffer source_bank_buffer = context["source_bank_buffer"]->getBuffer();
-      auto *source_bank = static_cast<Particle::Bank *>(source_bank_buffer->map());
+      auto *source_bank = static_cast<Particle_::Bank_ *>(source_bank_buffer->map());
       std::vector<Particle_> particles;
 
       for (int i = 0; i < simulation::work_per_rank; ++i) {
-        Particle::Bank &source_site = source_bank[i];
+        Particle_::Bank_ &source_site_ = source_bank[i];
+        Particle::Bank source_site {
+          Position {source_site_.r.x, source_site_.r.y, source_site_.r.z},
+          Direction {source_site_.u.x, source_site_.u.y, source_site_.u.z},
+          source_site_.E,
+          source_site_.wgt,
+          source_site_.delayed_group,
+          source_site_.particle
+        };
         simulation::source_bank.push_back(source_site);
         Particle_ p;
-        p.from_source(source_site);
+        p.from_source(source_site_);
         particles.push_back(p);
       }
       source_bank_buffer->unmap();

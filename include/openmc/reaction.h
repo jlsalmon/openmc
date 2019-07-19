@@ -44,19 +44,19 @@ struct Reaction_ {
 
   struct TemperatureXS_ {
     int threshold;
-    rtBufferId<double, 1> value_;
+    rtBufferId<float, 1> value_;
 
     __device__ __forceinline__ TemperatureXS_() {}
 
     __device__ __forceinline__ TemperatureXS_(Reaction::TemperatureXS *t,
-                                              rtBufferId<double, 1> value_) {
+                                              rtBufferId<float, 1> value_) {
       threshold = t->threshold;
       this->value_ = value_;
     }
   };
 
   int mt_;             //!< ENDF MT value
-  double q_value_;     //!< Reaction Q value in [eV]
+  float q_value_;     //!< Reaction Q value in [eV]
   bool scatter_in_cm_; //!< scattering system in center-of-mass?
   bool redundant_;     //!< redundant reaction?
   rtBufferId<TemperatureXS_, 1> xs_; //!< Cross section at each temperature

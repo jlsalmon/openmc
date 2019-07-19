@@ -38,7 +38,7 @@ public:
 };
 
 struct AngleDistribution_ {
-  rtBufferId<double, 1> energy_;
+  rtBufferId<float, 1> energy_;
   rtBufferId<Tabular_, 1> distribution_;
 
   __device__ __forceinline__ AngleDistribution_() {}

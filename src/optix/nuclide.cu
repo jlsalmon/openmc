@@ -26,11 +26,11 @@ void _calculate_elastic_xs(const Nuclide_& n, Particle_& p)
   auto& micro {p.neutron_xs_[n.i_nuclide_]};
   int i_temp = micro.index_temp;
   int i_grid = micro.index_grid;
-  double f = micro.interp_factor;
+  float f = micro.interp_factor;
 
   if (i_temp >= 0) {
     const auto& xs = n.reactions_[0].xs_[i_temp].value_;
-    micro.elastic = (1.0 - f)*xs[i_grid] + f*xs[i_grid + 1]; // TODO: is it this???
+    micro.elastic = (1.0f - f)*xs[i_grid] + f*xs[i_grid + 1];
   }
 
   // printf("micro.index_temp: %d\n", micro.index_temp);
@@ -39,11 +39,11 @@ void _calculate_elastic_xs(const Nuclide_& n, Particle_& p)
 
 
 __device__ __forceinline__
-double _nu(const Nuclide_& n, double E, ReactionProduct::EmissionMode mode, int group=0)
+float _nu(const Nuclide_& n, float E, ReactionProduct::EmissionMode mode, int group=0)
 {
   // printf("_nu\n");
 
-  if (!n.fissionable_) return 0.0;
+  if (!n.fissionable_) return 0.0f;
 
   switch (mode) {
     case ReactionProduct::EmissionMode::prompt:
@@ -65,7 +65,7 @@ double _nu(const Nuclide_& n, double E, ReactionProduct::EmissionMode mode, int 
           }
           // return (rx.products_[group].yield_)(E); // FIXME
         } else {
-          double nu {0.0};
+          float nu {0.0f};
 
           for (int i = 1; i < rx.products_.size(); ++i) {
             // Skip any non-neutron products
@@ -87,7 +87,7 @@ double _nu(const Nuclide_& n, double E, ReactionProduct::EmissionMode mode, int 
           return nu;
         }
       } else {
-        return 0.0;
+        return 0.0f;
       }
     case ReactionProduct::EmissionMode::total:
       // if (n.total_nu_) { // FIXME: total nu
@@ -107,15 +107,15 @@ double _nu(const Nuclide_& n, double E, ReactionProduct::EmissionMode mode, int 
 
 
 __device__ __forceinline__
-void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, double sab_frac, Particle_& p) {
+void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, float sab_frac, Particle_& p) {
   auto& micro {p.neutron_xs_[n.i_nuclide_]};
 
   // printf("Calculating nuclide cross section\n");
 
   // Initialize cached cross sections to zero
-  micro.elastic = CACHE_INVALID;
-  micro.thermal = 0.0;
-  micro.thermal_elastic = 0.0;
+  micro.elastic = (float) CACHE_INVALID;
+  micro.thermal = 0.0f;
+  micro.thermal_elastic = 0.0f;
 
   // Check to see if there is multipole data present at this energy
   bool use_mp = false;
@@ -126,7 +126,7 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, double sab_frac, Par
   // // Evaluate multipole or interpolate
   if (use_mp) {
   //   // Call multipole kernel
-  //   double sig_s, sig_a, sig_f;
+  //   float sig_s, sig_a, sig_f;
   //   std::tie(sig_s, sig_a, sig_f) = multipole_->evaluate(p.E_, p.sqrtkT_);
   //
   //   micro.total = sig_s + sig_a;
@@ -162,15 +162,15 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, double sab_frac, Par
 
   } else {
     // Find the appropriate temperature index.
-    double kT = p.sqrtkT_*p.sqrtkT_;
-    double f;
+    float kT = p.sqrtkT_*p.sqrtkT_;
+    float f;
     int i_temp = -1;
     switch (temperature_method) {
       case TEMPERATURE_NEAREST:
       {
-        double max_diff = INFTY;
+        float max_diff = (float) INFTY;
         for (int t = 0; t < n.kTs_.size(); ++t) {
-          double diff = fabsf(n.kTs_[t] - kT);
+          float diff = fabsf(n.kTs_[t] - kT);
           if (diff < max_diff) {
             i_temp = t;
             max_diff = diff;
@@ -242,15 +242,15 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, double sab_frac, Par
     micro.index_grid = i_grid;
     micro.interp_factor = f;
 
-    // printf("f: %f\n", f);
-    // printf("p.E_: %lf\n", p.E_);
-    // printf("grid.energy[i_grid]: %lf\n", grid.energy[i_grid]);
-    // printf("grid.energy[i_grid + 1]: %lf\n", grid.energy[i_grid + 1]);
+    rtPrintf("f: %f\n", f);
+    rtPrintf("p.E_: %lf\n", p.E_);
+    rtPrintf("grid.energy[i_grid]: %lf\n", grid.energy[i_grid]);
+    rtPrintf("grid.energy[i_grid + 1]: %lf\n", grid.energy[i_grid + 1]);
 
     // Calculate microscopic nuclide total cross section
     // micro.total = (1.0 - f)*xs(i_grid, XS_TOTAL)
     //               + f*xs(i_grid + 1, XS_TOTAL);
-    micro.total = (1.0 - f)*xs[(5 - XS_TOTAL_)*i_grid]
+    micro.total = (1.0f- f)*xs[(5 - XS_TOTAL_)*i_grid]
                   + f*xs[(5 - XS_TOTAL_)*i_grid + 1];
 
     // printf("xs[(5 - XS_TOTAL_)*i_grid]: %lf\n", xs[(5 - XS_TOTAL_)*i_grid]);
@@ -261,13 +261,13 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, double sab_frac, Par
     // printf("xs[5 * 0,1,2,3,4,5]: %lf %lf %lf %lf %lf %lf\n",
     //        xs[5*0], xs[5*1], xs[5*2],
     //        xs[5*3], xs[5*4], xs[5*5]);
-    //
-    // printf("nuclide._calculate_xs: micro.total: %lf\n", micro.total);
+
+    rtPrintf("nuclide._calculate_xs: micro.total: %lf\n", micro.total);
 
     // Calculate microscopic nuclide absorption cross section
     // micro.absorption = (1.0 - f)*xs(i_grid, XS_ABSORPTION)
     //                    + f*xs(i_grid + 1, XS_ABSORPTION);
-    micro.absorption = (1.0 - f)*xs[(5 - XS_ABSORPTION_)*i_grid]
+    micro.absorption = (1.0f - f)*xs[(5 - XS_ABSORPTION_)*i_grid]
                   + f*xs[(5 - XS_ABSORPTION_)*i_grid + 1];
 
     // printf("xs[(5 - XS_ABSORPTION_)*i_grid]: %lf\n", xs[(5 - XS_ABSORPTION_)*i_grid]);
@@ -278,17 +278,17 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, double sab_frac, Par
       // Calculate microscopic nuclide total cross section
       // micro.fission = (1.0 - f)*xs(i_grid, XS_FISSION)
       //                 + f*xs(i_grid + 1, XS_FISSION);
-      micro.fission = (1.0 - f)*xs[(5 - XS_FISSION_)*i_grid]
+      micro.fission = (1.0f - f)*xs[(5 - XS_FISSION_)*i_grid]
                     + f*xs[(5 - XS_FISSION_)*i_grid + 1];
 
       // Calculate microscopic nuclide nu-fission cross section
       // micro.nu_fission = (1.0 - f)*xs(i_grid, XS_NU_FISSION)
       //                    + f*xs(i_grid + 1, XS_NU_FISSION);
-      micro.nu_fission = (1.0 - f)*xs[(5 - XS_NU_FISSION_)*i_grid]
+      micro.nu_fission = (1.0f - f)*xs[(5 - XS_NU_FISSION_)*i_grid]
                     + f*xs[(5 - XS_NU_FISSION_)*i_grid + 1];
     } else {
-      micro.fission = 0.0;
-      micro.nu_fission = 0.0;
+      micro.fission = 0.0f;
+      micro.nu_fission = 0.0f;
     }
 
   //   // Calculate microscopic nuclide photon production cross section // FIXME: photon support
@@ -298,7 +298,7 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, double sab_frac, Par
   //   // Depletion-related reactions // FIXME: depletion reactions
   //   if (simulation::need_depletion_rx) {
   //     // Initialize all reaction cross sections to zero
-  //     for (double& xs_i : micro.reaction) {
+  //     for (float& xs_i : micro.reaction) {
   //       xs_i = 0.0;
   //     }
   //
@@ -336,7 +336,7 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, double sab_frac, Par
 
   // Initialize sab treatment to false
   micro.index_sab = C_NONE;
-  micro.sab_frac = 0.0;
+  micro.sab_frac = 0.0f;
 
   // Initialize URR probability table treatment to false
   micro.use_ptable = false;

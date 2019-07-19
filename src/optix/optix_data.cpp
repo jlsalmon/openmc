@@ -59,19 +59,19 @@ void initialize_device_data() {
   // Source bank buffer
   Buffer source_bank_buffer = context->createBuffer(
     RT_BUFFER_OUTPUT, RT_FORMAT_USER, static_cast<RTsize>(simulation::work_per_rank));
-  source_bank_buffer->setElementSize(sizeof(Particle::Bank));
+  source_bank_buffer->setElementSize(sizeof(Particle_::Bank_));
   context["source_bank_buffer"]->set(source_bank_buffer);
 
   // Fission bank buffer
   Buffer fission_bank_buffer = context->createBuffer(
     RT_BUFFER_OUTPUT, RT_FORMAT_USER, static_cast<RTsize>(3 * simulation::work_per_rank * 2)); // FIXME: is this the right size?
-  fission_bank_buffer->setElementSize(sizeof(Particle::Bank));
+  fission_bank_buffer->setElementSize(sizeof(Particle_::Bank_));
   context["fission_bank_buffer"]->set(fission_bank_buffer);
 
   // Secondary bank buffer
   Buffer secondary_bank_buffer = context->createBuffer(
     RT_BUFFER_OUTPUT, RT_FORMAT_USER, static_cast<RTsize>(simulation::work_per_rank));
-  secondary_bank_buffer->setElementSize(sizeof(Particle::Bank));
+  secondary_bank_buffer->setElementSize(sizeof(Particle_::Bank_));
   context["secondary_bank_buffer"]->set(secondary_bank_buffer);
 
   // ===========================================================================
@@ -81,11 +81,13 @@ void initialize_device_data() {
   context["n_particles"]->setUint(settings::n_particles);
   context["total_gen"]->setInt(simulation::total_gen);
   context["num_nuclides"]->setUint(data::nuclides.size());
-  context["log_spacing"]->setUserData(sizeof(double), &simulation::log_spacing);
-  context["energy_min_neutron"]->setUserData(sizeof(double), &data::energy_min[static_cast<int>(Particle::Type::neutron)]);
-  context["energy_max_neutron"]->setUserData(sizeof(double), &data::energy_max[static_cast<int>(Particle::Type::neutron)]);
+  context["log_spacing"]->setFloat(static_cast<float>(simulation::log_spacing));
+  context["energy_min_neutron"]->setFloat(
+    static_cast<float>(data::energy_min[static_cast<int>(Particle::Type::neutron)]));
+  context["energy_max_neutron"]->setFloat(
+    static_cast<float>(data::energy_max[static_cast<int>(Particle::Type::neutron)]));
   context["temperature_method"]->setInt(settings::temperature_method);
-  context["keff"]->setFloat(simulation::keff);
+  context["keff"]->setFloat(static_cast<float>(simulation::keff));
 
   // Material
   // FIXME: support more than one material
@@ -112,9 +114,11 @@ void initialize_device_data() {
 
   // Nuclide.kTs_
   Buffer kTs_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-  kTs_buffer->setElementSize(sizeof(double));
+  kTs_buffer->setElementSize(sizeof(float));
   kTs_buffer->setSize(nuclide->kTs_.size());
-  memcpy(kTs_buffer->map(), nuclide->kTs_.data(), nuclide->kTs_.size() * sizeof(double));
+  std::vector<float> floats(nuclide->kTs_.size());
+  std::transform(std::begin(nuclide->kTs_), std::end(nuclide->kTs_), std::begin(floats), [&](const double& value) { return static_cast<float>(value); });
+  memcpy(kTs_buffer->map(), floats.data(), nuclide->kTs_.size() * sizeof(float));
   kTs_buffer->unmap();
   // printf("nuclide_.kTs_ buffer id: %d\n", kTs_buffer->getId());
   // printf("nuclide_.kTs_.size: %lu\n", nuclide->kTs_.size());
@@ -135,9 +139,11 @@ void initialize_device_data() {
     // EnergyGrid.energy
     Buffer energy_buffer = context->createBuffer(RT_BUFFER_INPUT);
     energy_buffer->setFormat(RT_FORMAT_USER);
-    energy_buffer->setElementSize(sizeof(double));
+    energy_buffer->setElementSize(sizeof(float));
     energy_buffer->setSize(grid.energy.size());
-    memcpy(energy_buffer->map(), grid.energy.data(), grid.energy.size() * sizeof(double));
+    std::vector<float> floats2(grid.energy.size());
+    std::transform(std::begin(grid.energy), std::end(grid.energy), std::begin(floats2), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(energy_buffer->map(), floats2.data(), grid.energy.size() * sizeof(float));
     energy_buffer->unmap();
     // printf("EnergyGrid_.energy buffer id: %d\n", energy_buffer->getId());
 
@@ -158,14 +164,16 @@ void initialize_device_data() {
   // printf("nuclide->grid_[0].energy[76400]: %lf\n", nuclide->grid_[0].energy[76400]);
 
   // Nuclide cross sections
-  std::vector<rtBufferId<double, 1>> xss;
+  std::vector<rtBufferId<float, 1>> xss;
   for (auto& xs : nuclide->xs_) {
     // printf("xs.size(): %d\n", xs.size());
 
     Buffer xs_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-    xs_buffer->setElementSize(sizeof(double));
+    xs_buffer->setElementSize(sizeof(float));
     xs_buffer->setSize(xs.size());
-    memcpy(xs_buffer->map(), xs.data(), xs.size() * sizeof(double));
+    std::vector<float> floats3(xs.size());
+    std::transform(std::begin(xs), std::end(xs), std::begin(floats3), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(xs_buffer->map(), floats3.data(), xs.size() * sizeof(float));
     xs_buffer->unmap();
     // printf("xs_.xs_ buffer id: %d\n", xs_buffer->getId());
 
@@ -175,7 +183,7 @@ void initialize_device_data() {
 
   Buffer xs_buffers = context->createBuffer( RT_BUFFER_INPUT, RT_FORMAT_BUFFER_ID);
   xs_buffers->setSize(xss.size());
-  memcpy(xs_buffers->map(), xss.data(), xss.size() * sizeof(rtBufferId<rtBufferId<double, 1>, 1>));
+  memcpy(xs_buffers->map(), xss.data(), xss.size() * sizeof(rtBufferId<rtBufferId<float, 1>, 1>));
   xs_buffers->unmap();
   // printf("Nuclide.xs_ buffer id: %d\n", xs_buffers->getId());
 
@@ -373,9 +381,11 @@ Buffer initialize_nuclide_reactions(Context context, std::vector<Reaction*> reac
     std::vector<Reaction_::TemperatureXS_> xss;
     for (auto &xs : reaction->xs_) {
       Buffer value_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-      value_buffer->setElementSize(sizeof(double));
+      value_buffer->setElementSize(sizeof(float));
       value_buffer->setSize(xs.value.size());
-      memcpy(value_buffer->map(), xs.value.data(), xs.value.size() * sizeof(double));
+      std::vector<float> floats(xs.value.size());
+      std::transform(std::begin(xs.value), std::end(xs.value), std::begin(floats), [&](const double& value) { return static_cast<float>(value); });
+      memcpy(value_buffer->map(), floats.data(), xs.value.size() * sizeof(float));
       value_buffer->unmap();
 
       Reaction_::TemperatureXS_ xs_(&xs, value_buffer->getId());
@@ -422,18 +432,20 @@ void initialize_tabulated_1d(Tabulated1D_& tabulated_1d_, Context context, const
 
   // Tabulated1D.x_
   Buffer x_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-  x_buffer->setElementSize(sizeof(double));
+  x_buffer->setElementSize(sizeof(float));
   x_buffer->setSize(tabulated_1d.x_.size());
-  memcpy(x_buffer->map(), tabulated_1d.x_.data(),
-         tabulated_1d.x_.size() * sizeof(double));
+  std::vector<float> floats(tabulated_1d.x_.size());
+  std::transform(std::begin(tabulated_1d.x_), std::end(tabulated_1d.x_), std::begin(floats), [&](const double& value) { return static_cast<float>(value); });
+  memcpy(x_buffer->map(), floats.data(), tabulated_1d.x_.size() * sizeof(float));
   x_buffer->unmap();
 
   // Tabulated1D.y_
   Buffer y_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-  y_buffer->setElementSize(sizeof(double));
+  y_buffer->setElementSize(sizeof(float));
   y_buffer->setSize(tabulated_1d.y_.size());
-  memcpy(y_buffer->map(), tabulated_1d.y_.data(),
-         tabulated_1d.y_.size() * sizeof(double));
+  std::vector<float> floats2(tabulated_1d.y_.size());
+  std::transform(std::begin(tabulated_1d.y_), std::end(tabulated_1d.y_), std::begin(floats2), [&](const double& value) { return static_cast<float>(value); });
+  memcpy(y_buffer->map(), floats2.data(), tabulated_1d.y_.size() * sizeof(float));
   y_buffer->unmap();
 
   tabulated_1d_.n_regions_ = tabulated_1d.n_regions_;
@@ -451,9 +463,11 @@ void initialize_tabulated_1d(Tabulated1D_& tabulated_1d_, Context context, const
 
 void initialize_polynomial(Polynomial_& polynomial_, Context context, const Polynomial& polynomial) {
   Buffer yield_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-  yield_buffer->setElementSize(sizeof(double));
+  yield_buffer->setElementSize(sizeof(float));
   yield_buffer->setSize(polynomial.coef_.size());
-  memcpy(yield_buffer->map(), polynomial.coef_.data(), polynomial.coef_.size() * sizeof(int));
+  std::vector<float> floats(polynomial.coef_.size());
+  std::transform(std::begin(polynomial.coef_), std::end(polynomial.coef_), std::begin(floats), [&](const double& value) { return static_cast<float>(value); });
+  memcpy(yield_buffer->map(), floats.data(), polynomial.coef_.size() * sizeof(int));
   yield_buffer->unmap();
   // printf("Polynomial.yield buffer id: %d\n", yield_buffer->getId());
 
@@ -464,9 +478,11 @@ void initialize_polynomial(Polynomial_& polynomial_, Context context, const Poly
 void initialize_angle_distribution(AngleDistribution_& angle_, Context context, AngleDistribution& angle) {
   // AngleDistribution.energy_
   Buffer energy_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-  energy_buffer->setElementSize(sizeof(double));
+  energy_buffer->setElementSize(sizeof(float));
   energy_buffer->setSize(angle.energy_.size());
-  memcpy(energy_buffer->map(), angle.energy_.data(), angle.energy_.size() * sizeof(double));
+  std::vector<float> floats(angle.energy_.size());
+  std::transform(std::begin(angle.energy_), std::end(angle.energy_), std::begin(floats), [&](const double& value) { return static_cast<float>(value); });
+  memcpy(energy_buffer->map(), floats.data(), angle.energy_.size() * sizeof(float));
   energy_buffer->unmap();
   // printf("AngleDistribution.energy_ buffer id: %d\n", energy_buffer->getId());
 
@@ -477,23 +493,29 @@ void initialize_angle_distribution(AngleDistribution_& angle_, Context context, 
 
     // Tabular.x_
     Buffer x_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-    x_buffer->setElementSize(sizeof(double));
+    x_buffer->setElementSize(sizeof(float));
     x_buffer->setSize(tabular->x_.size());
-    memcpy(x_buffer->map(), tabular->x_.data(), tabular->x_.size() * sizeof(double));
+    std::vector<float> floats2(tabular->x_.size());
+    std::transform(std::begin(tabular->x_), std::end(tabular->x_), std::begin(floats2), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(x_buffer->map(), floats2.data(), tabular->x_.size() * sizeof(float));
     x_buffer->unmap();
 
     // Tabular.p_
     Buffer p_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-    p_buffer->setElementSize(sizeof(double));
+    p_buffer->setElementSize(sizeof(float));
     p_buffer->setSize(tabular->p_.size());
-    memcpy(p_buffer->map(), tabular->p_.data(), tabular->p_.size() * sizeof(double));
+    std::vector<float> floats3(tabular->p_.size());
+    std::transform(std::begin(tabular->p_), std::end(tabular->p_), std::begin(floats3), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(p_buffer->map(), floats3.data(), tabular->p_.size() * sizeof(float));
     p_buffer->unmap();
 
     // Tabular.c_
     Buffer c_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-    c_buffer->setElementSize(sizeof(double));
+    c_buffer->setElementSize(sizeof(float));
     c_buffer->setSize(tabular->c_.size());
-    memcpy(c_buffer->map(), tabular->c_.data(), tabular->c_.size() * sizeof(double));
+    std::vector<float> floats4(tabular->c_.size());
+    std::transform(std::begin(tabular->c_), std::end(tabular->c_), std::begin(floats4), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(c_buffer->map(), floats4.data(), tabular->c_.size() * sizeof(float));
     c_buffer->unmap();
 
     Tabular_ tabular_(x_buffer->getId(), p_buffer->getId(), c_buffer->getId(), tabular->interp_);
@@ -532,9 +554,11 @@ void initialize_continuous_tabular(ContinuousTabular_& energy_, Context context,
 
   // ContinuousTabular.energy_
   Buffer energy_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-  energy_buffer->setElementSize(sizeof(double));
+  energy_buffer->setElementSize(sizeof(float));
   energy_buffer->setSize(ct->energy_.size());
-  memcpy(energy_buffer->map(), ct->energy_.data(), ct->energy_.size() * sizeof(double));
+  std::vector<float> floats(ct->energy_.size());
+  std::transform(std::begin(ct->energy_), std::end(ct->energy_), std::begin(floats), [&](const double& value) { return static_cast<float>(value); });
+  memcpy(energy_buffer->map(), floats.data(), ct->energy_.size() * sizeof(float));
   energy_buffer->unmap();
 
   // ContinuousTabular.distribution_
@@ -543,23 +567,29 @@ void initialize_continuous_tabular(ContinuousTabular_& energy_, Context context,
 
     // CTTable.e_out
     Buffer e_out_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-    e_out_buffer->setElementSize(sizeof(double));
+    e_out_buffer->setElementSize(sizeof(float));
     e_out_buffer->setSize(distribution.e_out.size());
-    memcpy(e_out_buffer->map(), distribution.e_out.data(), distribution.e_out.size() * sizeof(double));
+    std::vector<float> floats2(distribution.e_out.size());
+    std::transform(std::begin(distribution.e_out), std::end(distribution.e_out), std::begin(floats2), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(e_out_buffer->map(), floats2.data(), distribution.e_out.size() * sizeof(float));
     e_out_buffer->unmap();
 
     // CTTable.p
     Buffer p_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-    p_buffer->setElementSize(sizeof(double));
+    p_buffer->setElementSize(sizeof(float));
     p_buffer->setSize(distribution.p.size());
-    memcpy(p_buffer->map(), distribution.p.data(), distribution.p.size() * sizeof(double));
+    std::vector<float> floats3(distribution.p.size());
+    std::transform(std::begin(distribution.p), std::end(distribution.p), std::begin(floats3), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(p_buffer->map(), floats3.data(), distribution.p.size() * sizeof(float));
     p_buffer->unmap();
 
     // CTTable.c
     Buffer c_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-    c_buffer->setElementSize(sizeof(double));
+    c_buffer->setElementSize(sizeof(float));
     c_buffer->setSize(distribution.c.size());
-    memcpy(c_buffer->map(), distribution.c.data(), distribution.c.size() * sizeof(double));
+    std::vector<float> floats4(distribution.c.size());
+    std::transform(std::begin(distribution.c), std::end(distribution.c), std::begin(floats4), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(c_buffer->map(), floats4.data(), distribution.c.size() * sizeof(float));
     c_buffer->unmap();
 
     ContinuousTabular_::CTTable_ distribution_;
@@ -595,13 +625,13 @@ void initialize_continuous_tabular(ContinuousTabular_& energy_, Context context,
 
 void initialize_discrete_photon(DiscretePhoton_ &energy_, Context context, DiscretePhoton *dp) {
   energy_.primary_flag_ = dp->primary_flag_;
-  energy_.A_ = dp->A_;
-  energy_.energy_ = dp->energy_;
+  energy_.A_ = static_cast<float>(dp->A_);
+  energy_.energy_ = static_cast<float>(dp->energy_);
 }
 
 void initialize_level_inelastic(LevelInelastic_ &energy_, Context context, LevelInelastic *li) {
-  energy_.mass_ratio_ = li->mass_ratio_;
-  energy_.threshold_ = li->threshold_;
+  energy_.mass_ratio_ = static_cast<float>(li->mass_ratio_);
+  energy_.threshold_ = static_cast<float>(li->threshold_);
 }
 
 void initialize_kalbach_mann(KalbachMann_ &energy_, Context context, KalbachMann *km) {
@@ -623,9 +653,11 @@ void initialize_kalbach_mann(KalbachMann_ &energy_, Context context, KalbachMann
 
   // KalbachMann.energy_
   Buffer energy_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-  energy_buffer->setElementSize(sizeof(double));
+  energy_buffer->setElementSize(sizeof(float));
   energy_buffer->setSize(km->energy_.size());
-  memcpy(energy_buffer->map(), km->energy_.data(), km->energy_.size() * sizeof(double));
+  std::vector<float> floats(km->energy_.size());
+  std::transform(std::begin(km->energy_), std::end(km->energy_), std::begin(floats), [&](const double& value) { return static_cast<float>(value); });
+  memcpy(energy_buffer->map(), floats.data(), km->energy_.size() * sizeof(float));
   energy_buffer->unmap();
 
   // KalbachMann.distribution_
@@ -634,37 +666,47 @@ void initialize_kalbach_mann(KalbachMann_ &energy_, Context context, KalbachMann
     
     // KMTable.e_out
     Buffer e_out_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-    e_out_buffer->setElementSize(sizeof(double));
+    e_out_buffer->setElementSize(sizeof(float));
     e_out_buffer->setSize(distribution.e_out.size());
-    memcpy(e_out_buffer->map(), distribution.e_out.data(), distribution.e_out.size() * sizeof(double));
+    std::vector<float> floats2(distribution.e_out.size());
+    std::transform(std::begin(distribution.e_out), std::end(distribution.e_out), std::begin(floats2), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(e_out_buffer->map(), floats2.data(), distribution.e_out.size() * sizeof(float));
     e_out_buffer->unmap();
 
     // KMTable.p
     Buffer p_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-    p_buffer->setElementSize(sizeof(double));
+    p_buffer->setElementSize(sizeof(float));
     p_buffer->setSize(distribution.p.size());
-    memcpy(p_buffer->map(), distribution.p.data(), distribution.p.size() * sizeof(double));
+    std::vector<float> floats3(distribution.p.size());
+    std::transform(std::begin(distribution.p), std::end(distribution.p), std::begin(floats3), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(p_buffer->map(), floats3.data(), distribution.p.size() * sizeof(float));
     p_buffer->unmap();
 
     // KMTable.c
     Buffer c_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-    c_buffer->setElementSize(sizeof(double));
+    c_buffer->setElementSize(sizeof(float));
     c_buffer->setSize(distribution.c.size());
-    memcpy(c_buffer->map(), distribution.c.data(), distribution.c.size() * sizeof(double));
+    std::vector<float> floats4(distribution.c.size());
+    std::transform(std::begin(distribution.c), std::end(distribution.c), std::begin(floats4), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(c_buffer->map(), floats4.data(), distribution.c.size() * sizeof(float));
     c_buffer->unmap();
 
     // KMTable.r
     Buffer r_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-    r_buffer->setElementSize(sizeof(double));
-    r_buffer->setSize(distribution.c.size());
-    memcpy(r_buffer->map(), distribution.c.data(), distribution.c.size() * sizeof(double));
+    r_buffer->setElementSize(sizeof(float));
+    r_buffer->setSize(distribution.r.size());
+    std::vector<float> floats5(distribution.r.size());
+    std::transform(std::begin(distribution.r), std::end(distribution.r), std::begin(floats5), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(r_buffer->map(), floats5.data(), distribution.r.size() * sizeof(float));
     r_buffer->unmap();
 
     // KMTable.a
     Buffer a_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-    a_buffer->setElementSize(sizeof(double));
-    a_buffer->setSize(distribution.c.size());
-    memcpy(a_buffer->map(), distribution.c.data(), distribution.c.size() * sizeof(double));
+    a_buffer->setElementSize(sizeof(float));
+    a_buffer->setSize(distribution.a.size());
+    std::vector<float> floats6(distribution.a.size());
+    std::transform(std::begin(distribution.a), std::end(distribution.a), std::begin(floats6), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(a_buffer->map(), floats6.data(), distribution.a.size() * sizeof(float));
     a_buffer->unmap();
 
     KalbachMann_::KMTable_ distribution_;

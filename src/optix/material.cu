@@ -19,7 +19,7 @@ void _calculate_neutron_xs(Particle_& p)
 
   // Find energy index on energy grid
   int neutron = static_cast<int>(Particle::Type::neutron);
-  int i_grid = log(p.E_/energy_min_neutron)/log_spacing;
+  int i_grid = logf(p.E_/energy_min_neutron)/log_spacing;
 
   rtPrintf("p.E_: %lf, energy_min_neutron: %f, log_spacing: %f\n", p.E_, energy_min_neutron, log_spacing);
   rtPrintf("p.E_/energy_min_neutron %f\n", p.E_/energy_min_neutron);
@@ -39,7 +39,7 @@ void _calculate_neutron_xs(Particle_& p)
     // CHECK FOR S(A,B) TABLE
 
     int i_sab = C_NONE;
-    double sab_frac = 0.0;
+    float sab_frac = 0.0f;
 
     // Check if this nuclide matches one of the S(a,b) tables specified.
     // This relies on thermal_tables_ being sorted by .index_nuclide
@@ -87,7 +87,7 @@ void _calculate_neutron_xs(Particle_& p)
     // ADD TO MACROSCOPIC CROSS SECTION
 
     // Copy atom density of nuclide in material
-    double atom_density = material.atom_density_[i];
+    float atom_density = material.atom_density_[i];
     // printf("atom density: %lf\n", atom_density);
     // printf("micro.total: %lf\n", micro.total);
     // printf("micro.absorption: %lf\n", micro.absorption);
@@ -106,10 +106,10 @@ __device__ __forceinline__
 void _calculate_xs(Particle_& p)
 {
   // Set all material macroscopic cross sections to zero
-  p.macro_xs_.total = 0.0;
-  p.macro_xs_.absorption = 0.0;
-  p.macro_xs_.fission = 0.0;
-  p.macro_xs_.nu_fission = 0.0;
+  p.macro_xs_.total = 0.0f;
+  p.macro_xs_.absorption = 0.0f;
+  p.macro_xs_.fission = 0.0f;
+  p.macro_xs_.nu_fission = 0.0f;
 
   if (p.type_ == Particle::Type::neutron) {
     _calculate_neutron_xs(p);

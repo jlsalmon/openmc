@@ -19,10 +19,10 @@ RT_PROGRAM void sample_source() {
   prn_set_stream(_STREAM_SOURCE);
 
   Particle::Type particle_ = Particle::Type::neutron;
-  Particle::Bank site;
+  Particle_::Bank_ site;
 
   // Set weight to one by default
-  site.wgt = 1.0;
+  site.wgt = 1.0f;
 
   // Repeat sampling source location until a good site has been found
   bool found = false;
@@ -33,8 +33,8 @@ RT_PROGRAM void sample_source() {
     site.particle = particle_;
 
     // Sample spatial distribution
-    site.r = Position{0, 0, 0}; // FIXME: space_->sample();
-    double xyz[] {site.r.x, site.r.y, site.r.z};
+    site.r = Position_{0.f, 0.f, 0.f}; // FIXME: space_->sample();
+    float xyz[] {site.r.x, site.r.y, site.r.z};
 
     // Now search to see if location exists in geometry
     int32_t cell_index, instance;
@@ -75,7 +75,7 @@ RT_PROGRAM void sample_source() {
   // ++n_accept;
 
   // Sample angle
-  site.u = {0.0, 0.0, 1.0}; // FIXME: angle_->sample();
+  site.u = {0.0f, 0.0f, 1.0f}; // FIXME: angle_->sample();
 
   // // Check for monoenergetic source above maximum particle energy
   // auto p = static_cast<int>(particle_);
@@ -93,7 +93,7 @@ RT_PROGRAM void sample_source() {
 
   // while (true) { FIXME
     // Sample energy spectrum
-    site.E = watt_spectrum(0.988e6, 2.249e-6); // FIXME: energy_->sample();
+    site.E = watt_spectrum(0.988e6f, 2.249e-6f); // FIXME: energy_->sample();
     rtPrintf("id: %u, site.E: %f\n", launch_index, site.E);
 
     // Resample if energy falls outside minimum or maximum particle energy

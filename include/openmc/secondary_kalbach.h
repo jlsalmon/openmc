@@ -55,11 +55,11 @@ struct KalbachMann_ {
   struct KMTable_ {
     int n_discrete; //!< Number of discrete lines
     Interpolation interpolation; //!< Interpolation law
-    rtBufferId<double, 1> e_out; //!< Outgoing energies [eV]
-    rtBufferId<double, 1> p; //!< Probability density
-    rtBufferId<double, 1> c; //!< Cumulative distribution
-    rtBufferId<double, 1> r; //!< Pre-compound fraction
-    rtBufferId<double, 1> a; //!< Parameterized function
+    rtBufferId<float, 1> e_out; //!< Outgoing energies [eV]
+    rtBufferId<float, 1> p; //!< Probability density
+    rtBufferId<float, 1> c; //!< Cumulative distribution
+    rtBufferId<float, 1> r; //!< Pre-compound fraction
+    rtBufferId<float, 1> a; //!< Parameterized function
 
     __device__ __forceinline__ KMTable_() {}
   };
@@ -67,7 +67,7 @@ struct KalbachMann_ {
   int n_region_; //!< Number of interpolation regions
   rtBufferId<int, 1> breakpoints_; //!< Breakpoints between regions
   rtBufferId<Interpolation, 1> interpolation_; //!< Interpolation laws
-  rtBufferId<double, 1> energy_; //!< Energies [eV] at which distributions
+  rtBufferId<float, 1> energy_; //!< Energies [eV] at which distributions
                                  //!< are tabulated
   rtBufferId<KMTable_, 1> distribution_; //!< Distribution at each energy
 

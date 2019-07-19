@@ -10,9 +10,8 @@
 
 
 __device__ __forceinline__
-double _sample_energy_distribution(const UncorrelatedAngleEnergy_& uae, double E_in) {
-  // EnergyDistribution_::Type type = energy.type;
-  double E_out;
+float _sample_energy_distribution(const UncorrelatedAngleEnergy_& uae, float E_in) {
+  float E_out;
 
   if (uae.energy_type == EnergyDistribution_::Type::continuous) {
     E_out = _sample_continuous_tabular_distribution(uae.energy_ct, E_in);
@@ -20,26 +19,29 @@ double _sample_energy_distribution(const UncorrelatedAngleEnergy_& uae, double E
     E_out = _sample_discrete_photon_distribution(uae.energy_dp, E_in);
   } else if (uae.energy_type == EnergyDistribution_::Type::level) {
     E_out = _sample_level_inelastic_distribution(uae.energy_li, E_in);
+  } else {
+    // printf("ERROR: Unsupported energy distribution type %d\n", uae.energy_type);
+    E_out = E_in;
   }
 
   return E_out;
 }
 
 __device__ __forceinline__
-void _sample_uncorrelated_angle_energy(const UncorrelatedAngleEnergy_& uae, double E_in, double& E_out, double& mu)
+void _sample_uncorrelated_angle_energy(const UncorrelatedAngleEnergy_& uae, float E_in, float& E_out, float& mu)
 {
   // Sample cosine of scattering angle
   if (uae.fission_) {
     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<< REMOVE THIS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     // For fission, the angle is not used, so just assign a dummy value
-    mu = 1.0;
+    mu = 1.0f;
     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<< REMOVE THIS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   } else if (!uae.angle_empty) {
     // mu = angle_.sample(E_in);
     mu = _sample_angle_distribution(uae.angle_, E_in);
   } else {
     // no angle distribution given => assume isotropic for all energies
-    mu = 2.0*prn() - 1.0;
+    mu = 2.0f*prn() - 1.0f;
   }
 
   // // Sample outgoing energy

@@ -179,13 +179,13 @@ struct Cell_ {
 
   int distribcell_index_{C_NONE};
   int32_t material_[1]; // FIXME: support more than one material
-  double sqrtkT_[1]; // FIXME: support more than one
+  float sqrtkT_[1]; // FIXME: support more than one
   int32_t *region_;
   int32_t *rpn_;
   bool simple_;  //!< Does the region contain only intersections?
   int32_t *neighbors_;
-  Position translation_ {0, 0, 0}; //!< Translation vector for filled universe
-  double *rotation_;
+  Position_ translation_ {0.f, 0.f, 0.f}; //!< Translation vector for filled universe
+  float *rotation_;
   int32_t *offset_;  //!< Distribcell offset table
 
   Cell_() {}
@@ -202,16 +202,18 @@ struct Cell_ {
       material_[i] = c->material_[i];
     }
     for (int i = 0; i < 1; ++i) { // FIXME: support more than one
-      sqrtkT_[i] = c->sqrtkT_[i];
+      sqrtkT_[i] = static_cast<float>(c->sqrtkT_[i]);
     }
 
     region_ = c->region_.data(); // FIXME: this will not work
     rpn_ = c->rpn_.data();  // FIXME: this will not work
     simple_ = c->simple_;
     // neighbors_ = c->neighbors_;
-    translation_ = c->translation_;
-    rotation_ = c->rotation_.data();  // FIXME: this will not work
-    offset_ = c->offset_.data();  // FIXME: this will not work
+    translation_ = Position_ {static_cast<float>(c->translation_.x),
+                              static_cast<float>(c->translation_.y),
+                              static_cast<float>(c->translation_.z)};
+    // rotation_ = c->rotation_.data();  // FIXME: this will not work
+    // offset_ = c->offset_.data();  // FIXME: this will not work
   }
 };
 

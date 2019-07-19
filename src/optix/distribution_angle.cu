@@ -10,10 +10,10 @@
 using namespace openmc;
 
 __device__ __forceinline__
-double _sample_angle_distribution(const AngleDistribution_& ad, double E)
+float _sample_angle_distribution(const AngleDistribution_& ad, float E)
 {
-  rtPrintf("AngleDistribution_.energy_ buffer id: %d\n", ad.energy_.getId());
-  rtPrintf("AngleDistribution_.distribution_ buffer id: %d\n", ad.distribution_.getId());
+  // rtPrintf("AngleDistribution_.energy_ buffer id: %d\n", ad.energy_.getId());
+  // rtPrintf("AngleDistribution_.distribution_ buffer id: %d\n", ad.distribution_.getId());
 
   // Determine number of incoming energies
   auto n = ad.energy_.size();
@@ -21,13 +21,13 @@ double _sample_angle_distribution(const AngleDistribution_& ad, double E)
   // Find energy bin and calculate interpolation factor -- if the energy is
   // outside the range of the tabulated energies, choose the first or last bins
   int i;
-  double r;
+  float r;
   if (E < ad.energy_[0]) {
     i = 0;
-    r = 0.0;
+    r = 0.0f;
   } else if (E > ad.energy_[n - 1]) {
     i = n - 2;
-    r = 1.0;
+    r = 1.0f;
   } else {
     // i = lower_bound_index(energy_.begin(), energy_.end(), E);
     i = _lower_bound(0, ad.energy_.size(), ad.energy_, E);
@@ -39,9 +39,9 @@ double _sample_angle_distribution(const AngleDistribution_& ad, double E)
 
   // Sample i-th distribution
   // double mu = distribution_[i]->sample();
-  double mu = _sample_tabular(ad.distribution_[i]);
+  float mu = _sample_tabular(ad.distribution_[i]);
 
   // Make sure mu is in range [-1,1] and return
-  if (fabsf(mu) > 1.0) mu = copysignf(1.0, mu);
+  if (fabsf(mu) > 1.0f) mu = copysignf(1.0f, mu);
   return mu;
 }

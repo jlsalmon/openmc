@@ -9,26 +9,26 @@
 
 
 __device__ __forceinline__
-void _sample_kalbach_mann(const KalbachMann_& km, double E_in, double& E_out, double& mu) {
+void _sample_kalbach_mann(const KalbachMann_& km, float E_in, float& E_out, float& mu) {
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< REMOVE THIS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   // Before the secondary distribution refactor, an isotropic polar cosine was
   // always sampled but then overwritten with the polar cosine sampled from the
   // correlated distribution. To preserve the random number stream, we keep
   // this dummy sampling here but can remove it later (will change answers)
-  mu = 2.0*prn() - 1.0;
+  mu = 2.0f*prn() - 1.0f;
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< REMOVE THIS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   // Find energy bin and calculate interpolation factor -- if the energy is
   // outside the range of the tabulated energies, choose the first or last bins
   auto n_energy_in = km.energy_.size();
   int i;
-  double r;
+  float r;
   if (E_in < km.energy_[0]) {
     i = 0;
-    r = 0.0;
+    r = 0.0f;
   } else if (E_in > km.energy_[n_energy_in - 1]) {
     i = n_energy_in - 2;
-    r = 1.0;
+    r = 1.0f;
   } else {
     // i = lower_bound_index(energy_.begin(), energy_.end(), E_in);
     i = _lower_bound(0, km.energy_.size(), km.energy_, E_in);
@@ -41,22 +41,22 @@ void _sample_kalbach_mann(const KalbachMann_& km, double E_in, double& E_out, do
   // Interpolation for energy E1 and EK
   int n_energy_out = km.distribution_[i].e_out.size();
   int n_discrete = km.distribution_[i].n_discrete;
-  double E_i_1 = km.distribution_[i].e_out[n_discrete];
-  double E_i_K = km.distribution_[i].e_out[n_energy_out - 1];
+  float E_i_1 = km.distribution_[i].e_out[n_discrete];
+  float E_i_K = km.distribution_[i].e_out[n_energy_out - 1];
 
   n_energy_out = km.distribution_[i+1].e_out.size();
   n_discrete = km.distribution_[i+1].n_discrete;
-  double E_i1_1 = km.distribution_[i+1].e_out[n_discrete];
-  double E_i1_K = km.distribution_[i+1].e_out[n_energy_out - 1];
+  float E_i1_1 = km.distribution_[i+1].e_out[n_discrete];
+  float E_i1_K = km.distribution_[i+1].e_out[n_energy_out - 1];
 
-  double E_1 = E_i_1 + r*(E_i1_1 - E_i_1);
-  double E_K = E_i_K + r*(E_i1_K - E_i_K);
+  float E_1 = E_i_1 + r*(E_i1_1 - E_i_1);
+  float E_K = E_i_K + r*(E_i1_K - E_i_K);
 
   // Determine outgoing energy bin
   n_energy_out = km.distribution_[l].e_out.size();
   n_discrete = km.distribution_[l].n_discrete;
-  double r1 = prn();
-  double c_k = km.distribution_[l].c[0];
+  float r1 = prn();
+  float c_k = km.distribution_[l].c[0];
   int k = 0;
   int end = n_energy_out - 2;
 
@@ -71,7 +71,7 @@ void _sample_kalbach_mann(const KalbachMann_& km, double E_in, double& E_out, do
   }
 
   // Continuous portion
-  double c_k1;
+  float c_k1;
   for (int j = n_discrete; j < end; ++j) {
     k = j;
     c_k1 = km.distribution_[l].c[k+1];
@@ -80,12 +80,12 @@ void _sample_kalbach_mann(const KalbachMann_& km, double E_in, double& E_out, do
     c_k = c_k1;
   }
 
-  double E_l_k = km.distribution_[l].e_out[k];
-  double p_l_k = km.distribution_[l].p[k];
-  double km_r, km_a;
+  float E_l_k = km.distribution_[l].e_out[k];
+  float p_l_k = km.distribution_[l].p[k];
+  float km_r, km_a;
   if (km.distribution_[l].interpolation == Interpolation::histogram) {
     // Histogram interpolation
-    if (p_l_k > 0.0 && k >= n_discrete) {
+    if (p_l_k > 0.0f && k >= n_discrete) {
       E_out = E_l_k + (r1 - c_k)/p_l_k;
     } else {
       E_out = E_l_k;
@@ -97,15 +97,15 @@ void _sample_kalbach_mann(const KalbachMann_& km, double E_in, double& E_out, do
 
   } else {
     // Linear-linear interpolation
-    double E_l_k1 = km.distribution_[l].e_out[k+1];
-    double p_l_k1 = km.distribution_[l].p[k+1];
+    float E_l_k1 = km.distribution_[l].e_out[k+1];
+    float p_l_k1 = km.distribution_[l].p[k+1];
 
-    double frac = (p_l_k1 - p_l_k)/(E_l_k1 - E_l_k);
-    if (frac == 0.0) {
+    float frac = (p_l_k1 - p_l_k)/(E_l_k1 - E_l_k);
+    if (frac == 0.0f) {
       E_out = E_l_k + (r1 - c_k)/p_l_k;
     } else {
-      E_out = E_l_k + (sqrtf(fmaxf(0.0, p_l_k*p_l_k +
-                                               2.0*frac*(r1 - c_k))) - p_l_k)/frac;
+      E_out = E_l_k + (sqrtf(fmaxf(0.0f, p_l_k*p_l_k +
+                                               2.0f*frac*(r1 - c_k))) - p_l_k)/frac;
     }
 
     // Determine Kalbach-Mann parameters
@@ -126,10 +126,10 @@ void _sample_kalbach_mann(const KalbachMann_& km, double E_in, double& E_out, do
 
   // Sampled correlated angle from Kalbach-Mann parameters
   if (prn() > km_r) {
-    double T = (2.0*prn() - 1.0) * sinhf(km_a);
-    mu = logf(T + sqrt(T*T + 1.0))/km_a;
+    float T = (2.0f*prn() - 1.0f) * sinhf(km_a);
+    mu = logf(T + sqrt(T*T + 1.0f))/km_a;
   } else {
-    double r1 = prn();
-    mu = logf(r1*expf(km_a) + (1.0 - r1)*expf(-km_a))/km_a;
+    float r1 = prn();
+    mu = logf(r1*expf(km_a) + (1.0f - r1)*expf(-km_a))/km_a;
   }
 }

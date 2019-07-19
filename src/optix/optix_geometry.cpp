@@ -61,7 +61,7 @@ void OptiXGeometry::create_context() {
   // FIXME: enabling exceptions somehow hides a misaligned address error...
   // context->setExceptionEnabled(RT_EXCEPTION_ALL, true);
   // context->setPrintEnabled(true);
-  // context->setPrintLaunchIndex(41756, 0, 0);
+  // context->setPrintLaunchIndex(29783, 0, 0);
 
   context["scene_epsilon"]->setFloat(1.e-4f);
 

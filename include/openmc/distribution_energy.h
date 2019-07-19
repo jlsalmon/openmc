@@ -54,8 +54,8 @@ public:
 struct DiscretePhoton_ {
   int primary_flag_; //!< Indicator of whether the photon is a primary or
                      //!< non-primary photon.
-  double energy_; //!< Photon energy or binding energy
-  double A_; //!< Atomic weight ratio of the target nuclide
+  float energy_; //!< Photon energy or binding energy
+  float A_; //!< Atomic weight ratio of the target nuclide
 };
 
 //===============================================================================
@@ -76,8 +76,8 @@ public:
 };
 
 struct LevelInelastic_ {
-  double threshold_; //!< Energy threshold in lab, (A + 1)/A * |Q|
-  double mass_ratio_; //!< (A/(A+1))^2
+  float threshold_; //!< Energy threshold in lab, (A + 1)/A * |Q|
+  float mass_ratio_; //!< (A/(A+1))^2
 
   __device__ __forceinline__ LevelInelastic_() {}
 };
@@ -118,16 +118,16 @@ struct ContinuousTabular_ {
   struct CTTable_ {
     Interpolation interpolation; //!< Interpolation law
     int n_discrete; //!< Number of of discrete energies
-    rtBufferId<double, 1> e_out; //!< Outgoing energies in [eV]
-    rtBufferId<double, 1> p; //!< Probability density
-    rtBufferId<double, 1> c; //!< Cumulative distribution
+    rtBufferId<float, 1> e_out; //!< Outgoing energies in [eV]
+    rtBufferId<float, 1> p; //!< Probability density
+    rtBufferId<float, 1> c; //!< Cumulative distribution
 
     __device__ __forceinline__ CTTable_() {}
 
     // __device__ __forceinline__ CTTable_(ContinuousTabular::CTTable &ct,
-    //                                     rtBufferId<double, 1> e_out,
-    //                                     rtBufferId<double, 1> p,
-    //                                     rtBufferId<double, 1> c) {
+    //                                     rtBufferId<float, 1> e_out,
+    //                                     rtBufferId<float, 1> p,
+    //                                     rtBufferId<float, 1> c) {
     //   interpolation = ct.interpolation;
     //   n_discrete = ct.n_discrete;
     //   this->e_out = e_out;
@@ -139,7 +139,7 @@ struct ContinuousTabular_ {
   int n_region_; //!< Number of inteprolation regions
   rtBufferId<int, 1> breakpoints_; //!< Breakpoints between regions
   rtBufferId<Interpolation, 1> interpolation_; //!< Interpolation laws
-  rtBufferId<double, 1> energy_; //!< Incident energy in [eV]
+  rtBufferId<float, 1> energy_; //!< Incident energy in [eV]
   rtBufferId<CTTable_, 1> distribution_; //!< Distributions for each incident energy
 
   __device__ __forceinline__ ContinuousTabular_() {}

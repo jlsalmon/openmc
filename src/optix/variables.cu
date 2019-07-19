@@ -42,12 +42,12 @@ rtDeclareVariable(int, total_gen, ,);
 rtDeclareVariable(int, overall_generation, ,);
 rtDeclareVariable(unsigned int, num_nuclides, ,);
 rtDeclareVariable(int, temperature_method, ,);
-rtDeclareVariable(double, log_spacing, ,);
-rtDeclareVariable(double, energy_min_neutron, ,);
-rtDeclareVariable(double, energy_max_neutron, ,);
+rtDeclareVariable(float, log_spacing, ,);
+rtDeclareVariable(float, energy_min_neutron, ,);
+rtDeclareVariable(float, energy_max_neutron, ,);
 rtDeclareVariable(float, keff, ,);
 rtDeclareVariable(Material_, material, ,);
-rtDeclareVariable(Material::ThermalTable, thermal_table, ,);
+// rtDeclareVariable(Material::ThermalTable, thermal_table, ,);
 
 // rtBuffer<rtBufferId<int,1>, 1> input_buffers;
 
@@ -63,6 +63,6 @@ rtBuffer<Cell_> cell_buffer;
 rtBuffer<Particle_> particle_buffer;
 
 // Output buffers
-rtBuffer<Particle::Bank> source_bank_buffer;
-rtBuffer<Particle::Bank> fission_bank_buffer;
-rtBuffer<Particle::Bank> secondary_bank_buffer;
+rtBuffer<Particle_::Bank_> source_bank_buffer;
+rtBuffer<Particle_::Bank_> fission_bank_buffer;
+rtBuffer<Particle_::Bank_> secondary_bank_buffer;
