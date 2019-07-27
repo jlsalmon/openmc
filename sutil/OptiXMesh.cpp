@@ -163,7 +163,7 @@ optix::Program createBoundingBoxProgram( optix::Context context )
 
 optix::Program createIntersectionProgram( optix::Context context )
 {
-  return context->createProgramFromPTXString( sutil::getPtxString( "cuda_compile_ptx_1", "triangle_mesh.cu" ), "mesh_intersect" );
+  return context->createProgramFromPTXString( sutil::getPtxString( "cuda_compile_ptx_1", "triangle_mesh.cu" ), "mesh_intersect_refine" );
 }
 
 

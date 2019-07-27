@@ -58,12 +58,13 @@ void OptiXGeometry::create_context() {
   int usage_report_level = 2;
   // context->setUsageReportCallback(usage_report_callback, usage_report_level, logger);
 
-  // FIXME: enabling exceptions somehow hides a misaligned address error...
   // context->setExceptionEnabled(RT_EXCEPTION_ALL, true);
   // context->setPrintEnabled(true);
-  // context->setPrintLaunchIndex(29783, 0, 0);
+  // context->setPrintLaunchIndex(27, 0, 0);
 
-  context["scene_epsilon"]->setFloat(1.e-4f);
+  // This needs to be slightly bigger than the 1e-4 in the docs, otherwise when
+  // not using the triangle API, particles get stuck on surfaces
+  context["scene_epsilon"]->setFloat(1.e-3f);
 
   // Single-particle tracking
   context->setRayGenerationProgram(0, context->createProgramFromPTXString(ptx_basic, "generate_ray_basic"));

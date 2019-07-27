@@ -204,7 +204,7 @@ void _cross_surface(Particle_ &p)
 
   // ==========================================================================
   // COULDN'T FIND PARTICLE IN NEIGHBORING CELLS, SEARCH ALL CELLS
-  printf("Couldn't find particle in neighbouring cells, searching all cells\n");
+  rtPrintf("Couldn't find particle in neighbouring cells, searching all cells (%d)\n", launch_index);
 
   // Remove lower coordinate levels and assignment of surface
   p.surface_ = 0;
@@ -218,7 +218,7 @@ void _cross_surface(Particle_ &p)
     // forward a tiny bit it should fix the problem.
 
     p.n_coord_ = 1;
-    p.r() += TINY_BIT * p.u();
+    p.r() += (float) TINY_BIT * p.u();
 
     // Couldn't find next cell anywhere! This probably means there is an actual
     // undefined region in the geometry.
@@ -227,8 +227,8 @@ void _cross_surface(Particle_ &p)
       // this->mark_as_lost("After particle " + std::to_string(id_) +  // FIXME: mark as lost
       //       //                    " crossed surface " + std::to_string(surf->id_) +
       //       //                    " it could not be located in any cell and it did not leak.");
-      printf("After particle %lli crossed surface %i it could not be located in "
-             "any cell and it did not leak.\n", p.id_, boundary_cond);
+      rtPrintf("After particle %lli crossed surface %i it could not be located in "
+             "any cell and it did not leak. (%d)\n", p.id_, boundary_cond, launch_index);
       return;
     }
   }

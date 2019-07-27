@@ -85,13 +85,13 @@ RT_PROGRAM void closest_hit_basic() {
   // bool back = rtIsTriangleHitBackFace();
 // #endif
 
-  // printf(">>> closest_hit() { id=%d, dist=%f }\n",
-  //        payload.surface_id, payload.intersection_distance);
+  rtPrintf(">>> closest_hit() { surf=%d, dist=%f }\n",
+         payload.surface_id, payload.intersection_distance);
 }
 
 
 RT_PROGRAM void miss_basic() {
-  // printf(">>> miss()\n");
+  rtPrintf(">>> miss()\n");
   payload.hit = false;
 }
 

@@ -81,7 +81,7 @@ bool _find_cell_inner(Particle_& p, const NeighborList* neighbor_list)
   //   msg << "    Entering cell " << model::cells[i_cell]->id_;
   //   write_message(msg, 1);
   // }
-  // printf("Entering cell %d\n", cell_buffer[i_cell].id_);
+  rtPrintf("Entering cell %d\n", cell_buffer[i_cell].id_);
 
   if (found) {
     // Cell_& c {cell_buffer[i_cell]/**model::cells[i_cell]*/};
@@ -306,6 +306,10 @@ BoundaryInfo_ _distance_to_boundary(Particle_& p)
     // auto surface_distance = c.distance(r, u, p.surface_);
     PerRayData payload = {};
     optix::Ray ray(make_float3(r.x, r.y, r.z), make_float3(u.x, u.y, u.z), 0, scene_epsilon);
+
+    rtPrintf(">>> dist_to_boundary: rtTrace(origin=(%f, %f, %f), direction=(%f, %f, %f))\n",
+             ray.origin.x, ray.origin.y, ray.origin.z,
+             ray.direction.x, ray.direction.y, ray.direction.z);
     rtTrace(top_object, ray, payload);
 
     // printf(">>> _distance_to_boundary(origin=(%f, %f, %f), direction=(%f, %f, %f))\n",

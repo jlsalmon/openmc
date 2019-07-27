@@ -21,9 +21,9 @@ bool _contains(int32_t cell_id, Position_ r, Direction_ u, int32_t on_surface) {
   while (payload.hit) {
     optix::Ray ray(payload.position, make_float3(u.x, u.y, u.z), 0, scene_epsilon);
 
-    // printf(">>> rtTrace(origin=(%f, %f, %f), direction=(%f, %f, %f))\n",
-    //        ray.origin.x, ray.origin.y, ray.origin.z,
-    //        ray.direction.x, ray.direction.y, ray.direction.z);
+    rtPrintf(">>> cell.contains: rtTrace(origin=(%f, %f, %f), direction=(%f, %f, %f), on_surface=%i)\n",
+           ray.origin.x, ray.origin.y, ray.origin.z,
+           ray.direction.x, ray.direction.y, ray.direction.z, on_surface);
     rtTrace(top_object, ray, payload);
 
     if (payload.hit) {
@@ -36,8 +36,8 @@ bool _contains(int32_t cell_id, Position_ r, Direction_ u, int32_t on_surface) {
     }
   }
 
-  // printf("closest_surf: %d, dist: %f, nhits: %d\n",
-  //   closest_surface_id, closest_intersection_distance, num_hits);
+  rtPrintf("closest_surf: %d, dist: %f, nhits: %d\n",
+    closest_surface_id, closest_intersection_distance, num_hits);
 
   bool contains = false;
 
@@ -76,8 +76,8 @@ bool _contains(int32_t cell_id, Position_ r, Direction_ u, int32_t on_surface) {
     printf(">>> ERROR: Only two cells are currently supported\n");
   }
 
-  // printf(">>> _contains(cell=%d, contains=%s, origin=(%f, %f, %f), direction=(%f, %f, %f))\n",
-  //        cell_id, contains? "TRUE": "FALSE", r.x, r.y, r.z,
-  //        u.x, u.y, u.z);
+  rtPrintf(">>> _contains(cell=%d, contains=%s, origin=(%f, %f, %f), direction=(%f, %f, %f))\n",
+         cell_id, contains? "TRUE": "FALSE", r.x, r.y, r.z,
+         u.x, u.y, u.z);
   return contains;
 };

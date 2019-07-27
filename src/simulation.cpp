@@ -207,12 +207,12 @@ int openmc_next_batch(int* status)
       // TODO: externalise this
       // cudaProfilerInitialize("/home/justin-local/cuda_profiler.conf",
       //   "cuda_profiler_output.csv", cudaOutputMode::cudaKeyValuePair);
-      // cudaProfilerStart();
+      cudaProfilerStart();
       // Launch the context
       printf("Launching OptiX context...\n");
       // context->launch(2, 10);
       context->launch(2, simulation::work_per_rank);
-      // cudaProfilerStop();
+      cudaProfilerStop();
 
     } else {
       #pragma omp parallel for schedule(runtime)
