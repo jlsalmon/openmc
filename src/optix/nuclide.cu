@@ -250,8 +250,8 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, float sab_frac, Part
     // Calculate microscopic nuclide total cross section
     // micro.total = (1.0 - f)*xs(i_grid, XS_TOTAL)
     //               + f*xs(i_grid + 1, XS_TOTAL);
-    micro.total = (1.0f- f)*xs[(5 - XS_TOTAL_)*i_grid]
-                  + f*xs[(5 - XS_TOTAL_)*i_grid + 1];
+    micro.total = (1.0f- f)*xs[(5 * i_grid) + XS_TOTAL_]
+                  + f*xs[(5 * (i_grid + 1)) + XS_TOTAL_];
 
     // printf("xs[(5 - XS_TOTAL_)*i_grid]: %lf\n", xs[(5 - XS_TOTAL_)*i_grid]);
     // printf("xs[(5 - XS_TOTAL_)*i_grid + 1]: %lf\n", xs[(5 - XS_TOTAL_)*i_grid + 1]);
@@ -267,8 +267,8 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, float sab_frac, Part
     // Calculate microscopic nuclide absorption cross section
     // micro.absorption = (1.0 - f)*xs(i_grid, XS_ABSORPTION)
     //                    + f*xs(i_grid + 1, XS_ABSORPTION);
-    micro.absorption = (1.0f - f)*xs[(5 - XS_ABSORPTION_)*i_grid]
-                  + f*xs[(5 - XS_ABSORPTION_)*i_grid + 1];
+    micro.absorption = (1.0f - f)*xs[(5 * i_grid) + XS_ABSORPTION_]
+                  + f*xs[(5 * (i_grid + 1)) + XS_ABSORPTION_];
 
     // printf("xs[(5 - XS_ABSORPTION_)*i_grid]: %lf\n", xs[(5 - XS_ABSORPTION_)*i_grid]);
     // printf("xs[(5 - XS_ABSORPTION_)*i_grid + 1]: %lf\n", xs[(5 - XS_ABSORPTION_)*i_grid + 1]);
@@ -278,14 +278,14 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, float sab_frac, Part
       // Calculate microscopic nuclide total cross section
       // micro.fission = (1.0 - f)*xs(i_grid, XS_FISSION)
       //                 + f*xs(i_grid + 1, XS_FISSION);
-      micro.fission = (1.0f - f)*xs[(5 - XS_FISSION_)*i_grid]
-                    + f*xs[(5 - XS_FISSION_)*i_grid + 1];
+      micro.fission = (1.0f - f)*xs[(5 * i_grid) + XS_FISSION_]
+                    + f*xs[(5 * (i_grid + 1)) + XS_FISSION_];
 
       // Calculate microscopic nuclide nu-fission cross section
       // micro.nu_fission = (1.0 - f)*xs(i_grid, XS_NU_FISSION)
       //                    + f*xs(i_grid + 1, XS_NU_FISSION);
-      micro.nu_fission = (1.0f - f)*xs[(5 - XS_NU_FISSION_)*i_grid]
-                    + f*xs[(5 - XS_NU_FISSION_)*i_grid + 1];
+      micro.nu_fission = (1.0f - f)*xs[(5 * i_grid) + XS_NU_FISSION_]
+                    + f*xs[(5 * (i_grid + 1)) + XS_NU_FISSION_];
     } else {
       micro.fission = 0.0f;
       micro.nu_fission = 0.0f;
