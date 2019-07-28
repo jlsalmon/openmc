@@ -95,9 +95,14 @@ public:
   //! Sample a value from the distribution
   //! \return Sampled value
   double sample() const;
-private:
+// private:
   double a_; //!< Factor in exponential [eV]
   double b_; //!< Factor in square root [1/eV]
+};
+
+struct Watt_ {
+  float a_; //!< Factor in exponential [eV]
+  float b_; //!< Factor in square root [1/eV]
 };
 
 //==============================================================================

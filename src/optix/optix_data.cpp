@@ -1,4 +1,6 @@
 #include <cuda.h>
+#include <openmc/distribution_spatial.h>
+#include <openmc/source.h>
 
 #include "openmc/settings.h"
 #include "openmc/simulation.h"
@@ -63,9 +65,9 @@ void initialize_device_data() {
   context["source_bank_buffer"]->set(source_bank_buffer);
 
   // Fission bank buffer
-  Buffer fission_bank_buffer = context->createBuffer(
-    RT_BUFFER_OUTPUT, RT_FORMAT_USER, static_cast<RTsize>(3 * simulation::work_per_rank * 2)); // FIXME: is this the right size?
+  Buffer fission_bank_buffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_USER);
   fission_bank_buffer->setElementSize(sizeof(Particle_::Bank_));
+  fission_bank_buffer->setSize(static_cast<RTsize>(3 * simulation::work_per_rank * 2)); // FIXME: is this the right size?
   context["fission_bank_buffer"]->set(fission_bank_buffer);
 
   // Secondary bank buffer
@@ -87,7 +89,6 @@ void initialize_device_data() {
   context["energy_max_neutron"]->setFloat(
     static_cast<float>(data::energy_max[static_cast<int>(Particle::Type::neutron)]));
   context["temperature_method"]->setInt(settings::temperature_method);
-  context["keff"]->setFloat(static_cast<float>(simulation::keff));
 
   // Material
   // FIXME: support more than one material
@@ -105,7 +106,35 @@ void initialize_device_data() {
   particle_buffer->setSize(simulation::work_per_rank);
   context["particle_buffer"]->setBuffer(particle_buffer);
 
-  printf("One particle weighs %zu bytes\n", sizeof(Particle_));
+  // External sources
+  // FIXME: support more than one source and more than one spatial/angle/energy dist
+  SourceDistribution &source = model::external_sources[0];
+  SourceDistribution_ source_;
+
+  SpatialBox_ space_;
+  SpatialBox *space = dynamic_cast<SpatialBox *>(source.space_.get());
+  space_.lower_left_ = Position_ {static_cast<float>(space->lower_left_.x), static_cast<float>(space->lower_left_.y), static_cast<float>(space->lower_left_.z)};
+  space_.upper_right_ = Position_ {static_cast<float>(space->upper_right_.x), static_cast<float>(space->upper_right_.y), static_cast<float>(space->upper_right_.z)};
+  space_.only_fissionable_ = space->only_fissionable_;
+
+  Isotropic_ angle_;
+  Isotropic *angle = dynamic_cast<Isotropic *>(source.angle_.get());
+  angle_.u_ref_ = Direction_ {static_cast<float>(angle->u_ref_.x), static_cast<float>(angle->u_ref_.y), static_cast<float>(angle->u_ref_.z)};
+
+  Watt_ energy_;
+  Watt *energy = dynamic_cast<Watt *>(source.energy_.get());
+  energy_.a_ = static_cast<float>(energy->a_);
+  energy_.b_ = static_cast<float>(energy->b_);
+
+  source_.space_ = space_;
+  source_.angle_ = angle_;
+  source_.energy_ = energy_;
+  Buffer external_sources_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+  external_sources_buffer->setElementSize(sizeof(SourceDistribution_));
+  external_sources_buffer->setSize(1);
+  memcpy(external_sources_buffer->map(), &source_, 1 * sizeof(SourceDistribution_));
+  context["external_sources_buffer"]->setBuffer(external_sources_buffer);
+  external_sources_buffer->unmap();
 
   // ===========================================================================
   // Nuclide

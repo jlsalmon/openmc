@@ -43,12 +43,20 @@ public:
 
   // Properties
   double strength() const { return strength_; }
-private:
+// private:
   Particle::Type particle_ {Particle::Type::neutron}; //!< Type of particle emitted
   double strength_ {1.0}; //!< Source strength
   UPtrSpace space_; //!< Spatial distribution
   UPtrAngle angle_; //!< Angular distribution
   UPtrDist energy_; //!< Energy distribution
+};
+
+struct SourceDistribution_ {
+  Particle::Type particle_ {Particle::Type::neutron}; //!< Type of particle emitted
+  float strength_ {1.0f}; //!< Source strength
+  SpatialBox_ space_; //!< Spatial distribution
+  Isotropic_ angle_; //!< Angular distribution
+  Watt_ energy_; //!< Energy distribution
 };
 
 //==============================================================================

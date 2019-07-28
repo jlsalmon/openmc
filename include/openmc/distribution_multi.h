@@ -59,6 +59,10 @@ public:
   Direction sample() const;
 };
 
+struct Isotropic_ {
+  Direction_ u_ref_ {0.0f, 0.0f, 1.0f};  //!< reference direction
+};
+
 //==============================================================================
 //! Monodirectional distribution
 //==============================================================================

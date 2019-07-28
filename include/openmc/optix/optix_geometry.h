@@ -11,6 +11,9 @@
 
 namespace openmc {
 
+#define ENTRY_POINT_SAMPLE_SOURCE 1
+#define ENTRY_POINT_TRANSPORT 2
+
 using namespace optix;
 
 class OptiXGeometry;

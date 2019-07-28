@@ -263,13 +263,11 @@ set(sources
         src/optix/distribution.cu
         src/optix/distribution_angle.cu
         src/optix/distribution_energy.cu
+        src/optix/distribution_spatial.cu
+        src/optix/distribution_multi.cu
         src/optix/secondary_uncorrelated.cu
         src/optix/secondary_kalbach.cu
-        src/optix/reaction_product.cu
-        src/optix/render/accum_camera.cu
-        src/optix/render/constantbg.cu
-        src/optix/render/normal_shader.cu
-        src/optix/render/optixGeometryTriangles.cu)
+        src/optix/reaction_product.cu)
 if(NOT CUDA_NVRTC_ENABLED)
   CUDA_COMPILE_PTX(ptx_files ${sources})
 endif()
@@ -444,7 +442,6 @@ add_library(libopenmc SHARED
   src/optix/optix_cell.cpp
   src/optix/optix_surface.cpp
   src/optix/optix_geometry.cpp
-  src/optix/optix_renderer.cpp
   src/optix/optix_data.cpp
   src/timer.cpp
   src/thermal.cpp

@@ -221,7 +221,7 @@ parse_command_line(int argc, char* argv[])
       } else if (arg == "--no-rtx") {
         settings::rtx = false;
 
-      } else if (arg == "--no-tri-api") {
+      } else if (arg == "--no-triangle-api") {
         settings::use_tri_api = false;
 
       } else {

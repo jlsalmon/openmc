@@ -51,9 +51,15 @@ public:
 
   // Properties
   bool only_fissionable() const { return only_fissionable_; }
-private:
+// private:
   Position lower_left_; //!< Lower-left coordinates of box
   Position upper_right_; //!< Upper-right coordinates of box
+  bool only_fissionable_ {false}; //!< Only accept sites in fissionable region?
+};
+
+struct SpatialBox_ {
+  Position_ lower_left_; //!< Lower-left coordinates of box
+  Position_ upper_right_; //!< Upper-right coordinates of box
   bool only_fissionable_ {false}; //!< Only accept sites in fissionable region?
 };
 

@@ -9,7 +9,7 @@
 #include "openmc/cell.h"
 #include "openmc/material.h"
 #include "openmc/nuclide.h"
-#include "openmc/thermal.h"
+#include "openmc/source.h"
 
 #define _BC_TRANSMIT 0
 #define _BC_VACUUM 1
@@ -61,6 +61,7 @@ rtBuffer<int> stream_buffer;
 rtBuffer<float3> normal_buffer;
 rtBuffer<Cell_> cell_buffer;
 rtBuffer<Particle_> particle_buffer;
+rtBuffer<SourceDistribution_> external_sources_buffer;
 
 // Output buffers
 rtBuffer<Particle_::Bank_> source_bank_buffer;
