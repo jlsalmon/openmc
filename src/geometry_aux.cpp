@@ -21,7 +21,6 @@
 #include "openmc/tallies/filter_distribcell.h"
 
 #include "openmc/optix/optix_geometry.h"
-#include "openmc/optix/optix_renderer.h"
 
 namespace openmc {
 
@@ -39,9 +38,6 @@ void read_geometry_xml()
     geometry = new OptiXGeometry();
     geometry->load("geometry.obj");
     model::root_universe = find_root_universe();
-
-    // auto *renderer = new OptiXRenderer();
-    // renderer->render();
 
     return;
   }
