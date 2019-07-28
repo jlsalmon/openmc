@@ -29,6 +29,7 @@
 #include <cmath> // for sqrt, abs, pow
 #include <iterator> // for back_inserter
 #include <string>
+#include <openmc/optix/optix_geometry.h>
 
 namespace openmc {
 
@@ -304,6 +305,36 @@ void synchronize_bank()
   std::copy(temp_sites.data(), temp_sites.data() + settings::n_particles,
     simulation::source_bank.begin());
 #endif
+
+  if (settings::optix) {
+    // Re-initialise device particle buffer from the source bank
+    std::vector<Particle_> particles;
+
+    for (const auto& site : simulation::source_bank) {
+
+      Particle_::Bank_ site_ {
+        Position_ {static_cast<float>(site.r.x), static_cast<float>(site.r.y), static_cast<float>(site.r.z)},
+        Direction_ {static_cast<float>(site.u.x), static_cast<float>(site.u.y), static_cast<float>(site.u.z)},
+        static_cast<float>(site.E),
+        static_cast<float>(site.wgt),
+        site.delayed_group,
+        site.particle
+      };
+
+      Particle_ p;
+      p.from_source(site_);
+      particles.push_back(p);
+    }
+
+    // Initialize particles
+    Buffer particle_buffer = geometry->context["particle_buffer"]->getBuffer();
+    memcpy(particle_buffer->map(), particles.data(), particles.size() * sizeof(Particle_));
+    particle_buffer->unmap();
+  }
+
+  // for (const auto& site : simulation::source_bank) {
+  //   printf("source site: E=%f, r=(%f, %f, %f)\n", site.E, site.r.x, site.r.y, site.r.z);
+  // }
 
   simulation::time_bank_sendrecv.stop();
   simulation::time_bank.stop();

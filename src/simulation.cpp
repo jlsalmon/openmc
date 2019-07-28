@@ -202,16 +202,24 @@ int openmc_next_batch(int* status)
 
     if (settings::optix) {
       Context context = openmc::geometry->context;
+
+      // Set variables before launch
+      // FIXME: changing variables triggers kernel recompilation... switch to
+      //  using a single-element buffer containing a struct with all the
+      //  variables that will change. see
+      //  https://devtalk.nvidia.com/default/topic/1048952/optix/recompile-question/
       context["overall_generation"]->setInt(overall_generation());
+      // context["keff"]->setFloat(static_cast<float>(simulation::keff));
 
       // TODO: externalise this
       // cudaProfilerInitialize("/home/justin-local/cuda_profiler.conf",
       //   "cuda_profiler_output.csv", cudaOutputMode::cudaKeyValuePair);
       cudaProfilerStart();
       // Launch the context
-      printf("Launching OptiX context...\n");
+      printf("Launching GPU kernel...\n");
       // context->launch(2, 10);
-      context->launch(2, simulation::work_per_rank);
+      context->launch(ENTRY_POINT_TRANSPORT, simulation::work_per_rank);
+      printf("Kernel finished\n");
       cudaProfilerStop();
 
     } else {
@@ -222,6 +230,9 @@ int openmc_next_batch(int* status)
         // grab source particle from bank
         Particle p;
         initialize_history(&p, simulation::current_work);
+
+        // printf("p.r: (%lf,%lf,%lf)\n", p.r().x, p.r().y, p.r().z);
+        // printf("p.u: (%lf,%lf,%lf)\n", p.u().x, p.u().y, p.u().z);
 
         // transport particle
         p.transport();
@@ -236,12 +247,31 @@ int openmc_next_batch(int* status)
 
       // Retrieve fission bank
       Buffer fission_bank_buffer = context["fission_bank_buffer"]->getBuffer();
-      auto *fission_bank = static_cast<Particle::Bank *>(fission_bank_buffer->map());
+      auto *fission_bank = static_cast<Particle_::Bank_ *>(fission_bank_buffer->map());
+
       for (int i = 0; i < 3* simulation::work_per_rank; ++i) {
         // FIXME: by doing this, the "no fission sites banked" error will not be
         // triggered even if we only do one particle
-        simulation::fission_bank.push_back(fission_bank[i]);
+
+        Particle_::Bank_ &site_ = fission_bank[i];
+
+        // Ignore uninitialised fission bank sites
+        if (site_.E == 0) {
+          continue;
+        }
+
+        Particle::Bank site {
+          Position {site_.r.x, site_.r.y, site_.r.z},
+          Direction {site_.u.x, site_.u.y, site_.u.z},
+          site_.E,
+          site_.wgt,
+          site_.delayed_group,
+          site_.particle
+        };
+
+        simulation::fission_bank.push_back(site);
       }
+
       fission_bank_buffer->unmap();
     }
 
@@ -471,6 +501,12 @@ void finalize_generation()
 
     // Distribute fission bank across processors evenly
     synchronize_bank(); // FIXME: are we handling this properly on the GPU?
+
+    // if (mpi::master) {
+    //   for (auto &site : simulation::fission_bank) {
+    //     printf("fission site: E=%f, wgt=%f\n", site.E, site.wgt);
+    //   }
+    // }
 
     // Calculate shannon entropy
     if (settings::entropy_on) shannon_entropy();

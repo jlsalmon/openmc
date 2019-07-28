@@ -275,7 +275,7 @@ void initialize_source()
       Context context = openmc::geometry->context;
 
       // Launch context
-      context->launch(1, static_cast<RTsize>(simulation::work_per_rank));
+      context->launch(ENTRY_POINT_SAMPLE_SOURCE, static_cast<RTsize>(simulation::work_per_rank));
 
       // Retrieve output buffer of banked source sites
       Buffer source_bank_buffer = context["source_bank_buffer"]->getBuffer();
@@ -292,7 +292,7 @@ void initialize_source()
           source_site_.delayed_group,
           source_site_.particle
         };
-        simulation::source_bank.push_back(source_site);
+        simulation::source_bank[i] = source_site;
         Particle_ p;
         p.from_source(source_site_);
         particles.push_back(p);
@@ -318,6 +318,11 @@ void initialize_source()
       }
     }
   }
+
+  // printf("num source sites=%lu\n", simulation::source_bank.size());
+  // for (const auto& site : simulation::source_bank) {
+  //   printf("source site: E=%f, r=(%f, %f, %f)\n", site.E, site.r.x, site.r.y, site.r.z);
+  // }
 
   // Write out initial source
   if (settings::write_initial_source) {

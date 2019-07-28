@@ -54,15 +54,15 @@ void _initialize_history(Particle_& p, int64_t index_source)
 }
 
 RT_PROGRAM void simulate_particle() {
-  using namespace openmc;
+  rtPrintf("Launched index %d\n", launch_index);
 
   Particle_& p = particle_buffer[launch_index];
   _initialize_history(p, launch_index);
 
   // printf("p.alive: %d\n", p.alive_);
   // printf("p.wgt_: %lf\n", p.wgt_);
-  // printf("p.r: (%lf,%lf,%lf)\n", p.r().x, p.r().y, p.r().z);
-  // printf("p.u: (%lf,%lf,%lf)\n", p.u().x, p.u().y, p.u().z);
+  rtPrintf("p.r: (%lf,%lf,%lf)\n", p.r().x, p.r().y, p.r().z);
+  rtPrintf("p.u: (%lf,%lf,%lf)\n", p.u().x, p.u().y, p.u().z);
   // printf("p.E_:%lf\n", p.E_);
 
   // transport particle

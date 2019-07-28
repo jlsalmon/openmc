@@ -67,7 +67,7 @@ void initialize_device_data() {
   // Fission bank buffer
   Buffer fission_bank_buffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_USER);
   fission_bank_buffer->setElementSize(sizeof(Particle_::Bank_));
-  fission_bank_buffer->setSize(static_cast<RTsize>(3 * simulation::work_per_rank * 2)); // FIXME: is this the right size?
+  fission_bank_buffer->setSize(static_cast<RTsize>(3 * simulation::work_per_rank)); // FIXME: is this the right size?
   context["fission_bank_buffer"]->set(fission_bank_buffer);
 
   // Secondary bank buffer
@@ -89,6 +89,7 @@ void initialize_device_data() {
   context["energy_max_neutron"]->setFloat(
     static_cast<float>(data::energy_max[static_cast<int>(Particle::Type::neutron)]));
   context["temperature_method"]->setInt(settings::temperature_method);
+  context["keff"]->setFloat(static_cast<float>(simulation::keff));
 
   // Material
   // FIXME: support more than one material
@@ -101,7 +102,7 @@ void initialize_device_data() {
   // ===========================================================================
 
   // Particles
-  Buffer particle_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+  Buffer particle_buffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_USER);
   particle_buffer->setElementSize(sizeof(Particle_));
   particle_buffer->setSize(simulation::work_per_rank);
   context["particle_buffer"]->setBuffer(particle_buffer);
