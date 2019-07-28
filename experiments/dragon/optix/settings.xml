@@ -2,6 +2,7 @@
 <settings>
 <!--  <verbosity>10</verbosity>-->
   <run_mode>eigenvalue</run_mode>
+  <optix>true</optix>
   <batches>2</batches>
   <generations_per_batch>2</generations_per_batch>
   <inactive>0</inactive>
@@ -9,8 +10,8 @@
   <!-- Starting source -->
   <source>
     <space type="fission">
-      <parameters>-0.1 -0.1 -0.1  0.1  0.1  0.1</parameters>
+      <parameters>-100.0 -100.0 -100.0  100.0  100.0  100.0</parameters>
     </space>
   </source>
-
+<!--  <track>1 1 1</track>-->
 </settings>

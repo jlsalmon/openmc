@@ -9,7 +9,7 @@
   <particles>10000</particles>
   <!-- Starting source -->
   <source>
-    <space type="box">
+    <space type="fission">
       <parameters>-0.1 -0.1 -0.1  0.1  0.1  0.1</parameters>
     </space>
   </source>
