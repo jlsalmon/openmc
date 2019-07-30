@@ -51,7 +51,7 @@ void _cross_surface(Particle_ &p)
     // }
 
     // Score to global leakage tally
-    // global_tally_leakage += wgt_; // FIXME: tallies
+    global_tally_leakage_buffer[launch_index] += p.wgt_;
 
     // Display message
     // if (settings::verbosity >= 10 || simulation::trace) {
@@ -281,7 +281,7 @@ void _transport(Particle_ &p) {
 
   // Add paricle's starting weight to count for normalizing tallies later
 // #pragma omp atomic
-//   simulation::total_weight += wgt_; // FIXME: add the weight to an output buffer at this launch index
+  total_weight_buffer[launch_index] += p.wgt_;
 
   // Force calculation of cross-sections by setting last energy to zero
   // if (settings::run_CE) { // FIXME: add settings as variables
@@ -403,11 +403,12 @@ void _transport(Particle_ &p) {
     //     score_tracklength_tally(this, distance);
     //   }
     //
-    //   // Score track-length estimate of k-eff
-    //   if (settings::run_mode == RUN_MODE_EIGENVALUE &&
-    //       type_ == Particle::Type::neutron) {
-    //     global_tally_tracklength += wgt_ * distance * macro_xs_.nu_fission;
-    //   }
+    // Score track-length estimate of k-eff
+    // if (settings::run_mode == RUN_MODE_EIGENVALUE && // FIXME: run modes
+    //     type_ == Particle::Type::neutron) { // FIXME: particle types
+      global_tally_tracklength_buffer[launch_index]
+        += p.wgt_ * distance * p.macro_xs_.nu_fission;
+    // }
     //
     //   // Score flux derivative accumulators for differential tallies.
     //   if (!model::active_tallies.empty()) {
@@ -448,12 +449,12 @@ void _transport(Particle_ &p) {
       // ====================================================================
       // PARTICLE HAS COLLISION
 
-      //     // Score collision estimate of keff
-      //     if (settings::run_mode == RUN_MODE_EIGENVALUE && // FIXME: tallies
-      //         type_ == Particle::Type::neutron) {
-      //       global_tally_collision += wgt_ * macro_xs_.nu_fission
-      //                                 / macro_xs_.total;
-      //     }
+      // Score collision estimate of keff
+      // if (settings::run_mode == RUN_MODE_EIGENVALUE && // FIXME: run modes
+      //     type_ == Particle::Type::neutron) { // FIXME: particle types
+        global_tally_collision_buffer[launch_index] += p.wgt_ * p.macro_xs_.nu_fission
+                                  / p.macro_xs_.total;
+      // }
 
       //     // Score surface current tallies -- this has to be done before the collision
       //     // since the direction of the particle will change and we need to use the

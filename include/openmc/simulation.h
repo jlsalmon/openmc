@@ -49,6 +49,10 @@ extern "C" bool trace;     //!< flag to show debug information
 
 } // namespace simulation
 
+struct simulation_ {
+  float keff;
+};
+
 //==============================================================================
 // Functions
 //==============================================================================

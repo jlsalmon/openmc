@@ -5,6 +5,7 @@
 
 #include "cuda/random.h"
 
+#include "openmc/simulation.h"
 #include "openmc/particle.h"
 #include "openmc/cell.h"
 #include "openmc/material.h"
@@ -38,14 +39,13 @@ rtDeclareVariable(float, scene_epsilon, ,);
 
 // User variables
 rtDeclareVariable(unsigned int, n_particles, ,);
-rtDeclareVariable(int, total_gen, ,);
-rtDeclareVariable(int, overall_generation, ,);
+// rtDeclareVariable(int, total_gen, ,);
+// rtDeclareVariable(int, overall_generation, ,);
 rtDeclareVariable(unsigned int, num_nuclides, ,);
 rtDeclareVariable(int, temperature_method, ,);
 rtDeclareVariable(float, log_spacing, ,);
 rtDeclareVariable(float, energy_min_neutron, ,);
 rtDeclareVariable(float, energy_max_neutron, ,);
-rtDeclareVariable(float, keff, ,);
 rtDeclareVariable(Material_, material, ,);
 // rtDeclareVariable(Material::ThermalTable, thermal_table, ,);
 
@@ -63,7 +63,14 @@ rtBuffer<Cell_> cell_buffer;
 rtBuffer<Particle_> particle_buffer;
 rtBuffer<SourceDistribution_> external_sources_buffer;
 
+rtBuffer<simulation_> _simulation;
+
 // Output buffers
 rtBuffer<Particle_::Bank_> source_bank_buffer;
 rtBuffer<Particle_::Bank_> fission_bank_buffer;
 rtBuffer<Particle_::Bank_> secondary_bank_buffer;
+rtBuffer<float> global_tally_absorption_buffer;
+rtBuffer<float> global_tally_collision_buffer;
+rtBuffer<float> global_tally_tracklength_buffer;
+rtBuffer<float> global_tally_leakage_buffer;
+rtBuffer<float> total_weight_buffer;

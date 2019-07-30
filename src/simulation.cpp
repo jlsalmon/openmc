@@ -23,6 +23,7 @@
 #include "openmc/optix/optix_geometry.h"
 #include "openmc/optix/optix_data.h"
 #include "openmc/geometry.h"
+#include "openmc/simulation.h"
 
 #include <cuda_profiler_api.h>
 
@@ -208,8 +209,17 @@ int openmc_next_batch(int* status)
       //  using a single-element buffer containing a struct with all the
       //  variables that will change. see
       //  https://devtalk.nvidia.com/default/topic/1048952/optix/recompile-question/
-      context["overall_generation"]->setInt(overall_generation());
+      // context["overall_generation"]->setInt(overall_generation());
       // context["keff"]->setFloat(static_cast<float>(simulation::keff));
+
+      // Update the simulation variables
+      // printf("new keff: %f\n", simulation::keff);
+      simulation_ sim {
+        static_cast<float>(simulation::keff)
+      };
+      Buffer simulation_buffer = context["_simulation"]->getBuffer();
+      memcpy(simulation_buffer->map(), &sim, 1 * sizeof(simulation_));
+      simulation_buffer->unmap();
 
       // TODO: externalise this
       // cudaProfilerInitialize("/home/justin-local/cuda_profiler.conf",
@@ -268,10 +278,8 @@ int openmc_next_batch(int* status)
           site_.delayed_group,
           site_.particle
         };
-
         simulation::fission_bank.push_back(site);
       }
-
       fission_bank_buffer->unmap();
     }
 
@@ -490,6 +498,65 @@ void finalize_generation()
       global_tally_tracklength = 0.0;
     }
     global_tally_leakage = 0.0;
+  }
+
+  if (settings::optix) {
+    // Reduce global tally buffers
+    // TODO: offload this to the GPU
+    
+    Buffer global_tally_collision_buffer
+      = geometry->context["global_tally_collision_buffer"]->getBuffer();
+    auto* global_tally_collisions
+      = static_cast<float *>(global_tally_collision_buffer->map());
+
+    Buffer global_tally_absorption_buffer
+      = geometry->context["global_tally_absorption_buffer"]->getBuffer();
+    auto* global_tally_absorptions
+      = static_cast<float *>(global_tally_absorption_buffer->map());
+
+    Buffer global_tally_tracklength_buffer
+      = geometry->context["global_tally_tracklength_buffer"]->getBuffer();
+    auto* global_tally_tracklengths
+      = static_cast<float *>(global_tally_tracklength_buffer->map());
+
+    Buffer global_tally_leakage_buffer
+      = geometry->context["global_tally_leakage_buffer"]->getBuffer();
+    auto* global_tally_leakages
+      = static_cast<float *>(global_tally_leakage_buffer->map());
+
+    Buffer total_weight_buffer
+      = geometry->context["total_weight_buffer"]->getBuffer();
+    auto* total_weights
+      = static_cast<float *>(total_weight_buffer->map());
+
+    for (int i = 0; i < simulation::work_per_rank; ++i) {
+
+      if (settings::run_mode == RUN_MODE_EIGENVALUE) {
+        gt(K_COLLISION, RESULT_VALUE) += global_tally_collisions[i];
+        gt(K_ABSORPTION, RESULT_VALUE) += global_tally_absorptions[i];
+        gt(K_TRACKLENGTH, RESULT_VALUE) += global_tally_tracklengths[i];
+      }
+      gt(LEAKAGE, RESULT_VALUE) += global_tally_leakages[i];
+
+      simulation::total_weight += total_weights[i];
+    }
+
+    // Zero the tally buffers
+    memset(global_tally_collisions, 0, simulation::work_per_rank * sizeof(float));
+    global_tally_collision_buffer->unmap();
+    memset(global_tally_absorptions, 0, simulation::work_per_rank * sizeof(float));
+    global_tally_absorption_buffer->unmap();
+    memset(global_tally_tracklengths, 0, simulation::work_per_rank * sizeof(float));
+    global_tally_tracklength_buffer->unmap();
+    memset(global_tally_leakages, 0, simulation::work_per_rank * sizeof(float));
+    global_tally_leakage_buffer->unmap();
+    memset(total_weights, 0, simulation::work_per_rank * sizeof(float));
+    total_weight_buffer->unmap();
+
+    // printf("gt(K_COLLISION, RESULT_VALUE): %f\n", gt(K_COLLISION, RESULT_VALUE));
+    // printf("gt(K_ABSORPTION, RESULT_VALUE): %f\n", gt(K_ABSORPTION, RESULT_VALUE));
+    // printf("gt(K_TRACKLENGTH, RESULT_VALUE): %f\n", gt(K_TRACKLENGTH, RESULT_VALUE));
+    // printf("gt(LEAKAGE, RESULT_VALUE): %f\n", gt(LEAKAGE, RESULT_VALUE));
   }
 
 

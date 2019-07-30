@@ -584,11 +584,11 @@ void _absorption(Particle_& p, int i_nuclide)
     // See if disappearance reaction happens
     if (p.neutron_xs_[i_nuclide].absorption >
         prn() * p.neutron_xs_[i_nuclide].total) {
-      // printf("Absorbed!\n");
-      // // Score absorption estimate of keff
-      // if (settings::run_mode == RUN_MODE_EIGENVALUE) { // FIXME: tallies
-      //   global_tally_absorption += p.wgt_ * p.neutron_xs_[
-      //     i_nuclide].nu_fission / p.neutron_xs_[i_nuclide].absorption;
+      // rtPrintf("Absorbed\n");
+      // Score absorption estimate of keff
+      // if (settings::run_mode == RUN_MODE_EIGENVALUE) { // FIXME: run modes
+        global_tally_absorption_buffer[launch_index] += p.wgt_ * p.neutron_xs_[
+          i_nuclide].nu_fission / p.neutron_xs_[i_nuclide].absorption;
       // }
 
       p.alive_ = false;
@@ -712,19 +712,13 @@ void _create_fission_sites(Particle_& p, int i_nuclide, const Reaction_& rx)
   float weight = /*settings::ufs_on ? ufs_get_weight(p) :*/ 1.0f; // FIXME: ufs
 
   // Determine the expected number of neutrons produced
-  float nu_t = p.wgt_ / keff * weight * p.neutron_xs_[
+  float nu_t = p.wgt_ / _simulation[0].keff * weight * p.neutron_xs_[
     i_nuclide].nu_fission / p.neutron_xs_[i_nuclide].total;
-
-  rtPrintf("nu_t: %lf\n", nu_t);
-  rtPrintf("keff: %f\n", keff);
-  rtPrintf("p.neutron_xs_[i_nuclide].nu_fission: %lf\n", p.neutron_xs_[i_nuclide].nu_fission);
-  rtPrintf("p.neutron_xs_[i_nuclide].total: %lf\n", p.neutron_xs_[i_nuclide].total);
 
   // Sample the number of neutrons produced
   int nu = static_cast<int>(nu_t);
   if (prn() <= (nu_t - nu)) ++nu;
 
-  rtPrintf("nu: %d\n", nu);
 
   // Begin banking the source neutrons
   // First, if our bank is full then don't continue

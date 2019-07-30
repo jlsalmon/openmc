@@ -76,8 +76,8 @@ RT_PROGRAM void sample_source() {
 
       // Check for rejection
       // FIXME: this obviously won't work properly because of n_accept being a
-      //  global variable (which don't work in this case). Would need to use an
-      //  atomic counter or something here.
+      //  global variable (which don't work here). Would need to use an atomic
+      //  counter or something.
       // if (!found) {
       //   ++n_reject;
       //   if (n_reject >= EXTSRC_REJECT_THRESHOLD &&

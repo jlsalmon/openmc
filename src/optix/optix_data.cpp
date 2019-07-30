@@ -76,6 +76,36 @@ void initialize_device_data() {
   secondary_bank_buffer->setElementSize(sizeof(Particle_::Bank_));
   context["secondary_bank_buffer"]->set(secondary_bank_buffer);
 
+  // Global absorption tally buffer
+  Buffer global_tally_absorption_buffer = context->createBuffer(
+    RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT);
+  global_tally_absorption_buffer->setSize(simulation::work_per_rank);
+  context["global_tally_absorption_buffer"]->set(global_tally_absorption_buffer);
+
+  // Global collision tally buffer
+  Buffer global_tally_collision_buffer = context->createBuffer(
+    RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT);
+  global_tally_collision_buffer->setSize(simulation::work_per_rank);
+  context["global_tally_collision_buffer"]->set(global_tally_collision_buffer);
+
+  // Global tracklength tally buffer
+  Buffer global_tally_tracklength_buffer = context->createBuffer(
+    RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT);
+  global_tally_tracklength_buffer->setSize(simulation::work_per_rank);
+  context["global_tally_tracklength_buffer"]->set(global_tally_tracklength_buffer);
+
+  // Global leakage tally buffer
+  Buffer global_tally_leakage_buffer = context->createBuffer(
+    RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT);
+  global_tally_leakage_buffer->setSize(simulation::work_per_rank);
+  context["global_tally_leakage_buffer"]->set(global_tally_leakage_buffer);
+
+  // Total weight buffer
+  Buffer total_weight_buffer = context->createBuffer(
+    RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT);
+  total_weight_buffer->setSize(simulation::work_per_rank);
+  context["total_weight_buffer"]->set(total_weight_buffer);
+
   // ===========================================================================
   // Variables
   // ===========================================================================
@@ -89,7 +119,19 @@ void initialize_device_data() {
   context["energy_max_neutron"]->setFloat(
     static_cast<float>(data::energy_max[static_cast<int>(Particle::Type::neutron)]));
   context["temperature_method"]->setInt(settings::temperature_method);
-  context["keff"]->setFloat(static_cast<float>(simulation::keff));
+
+  // Simulation variables
+  // We use a struct inside a single-element buffer here to prevent OptiX
+  // recompilation when updating top-level variables.
+  simulation_ sim {
+    static_cast<float>(simulation::keff)
+  };
+  Buffer simulation_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+  simulation_buffer->setElementSize(sizeof(simulation_));
+  simulation_buffer->setSize(1);
+  memcpy(simulation_buffer->map(), &sim, 1 * sizeof(simulation_));
+  context["_simulation"]->setBuffer(simulation_buffer);
+  simulation_buffer->unmap();
 
   // Material
   // FIXME: support more than one material

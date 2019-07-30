@@ -60,10 +60,10 @@ void OptiXGeometry::create_context() {
 
   // context->setExceptionEnabled(RT_EXCEPTION_ALL, true);
   // context->setPrintEnabled(true);
-  // context->setPrintLaunchIndex(27, 0, 0);
+  // context->setPrintLaunchIndex(3, 0, 0);
 
-  // This needs to be slightly bigger than the 1e-4 in the docs, otherwise when
-  // not using the triangle API, particles get stuck on surfaces
+  // This needs to be slightly bigger than the 1e-4 in the docs, otherwise
+  // particles can get stuck on surfaces when not using the triangle API
   context["scene_epsilon"]->setFloat(1.e-3f);
 
   // Single-particle tracking
