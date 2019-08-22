@@ -408,6 +408,53 @@ public:
   double A_, B_, C_, D_, E_, F_, G_, H_, J_, K_;
 };
 
+struct Surface_ {
+  int id_;                    //!< Unique ID
+  int bc_;                    //!< Boundary condition
+  const char* name_;          //!< User-defined name
+
+  enum class Type {
+    xplane = 1, yplane = 2, zplane = 3, sphere = 4
+  };
+
+  Type type;
+
+  // SurfaceXPlane
+  float xplane_x0_;
+  // SurfaceYPlane
+  float yplane_y0_;
+  // SurfaceZPlane
+  float zplane_z0_;
+
+  // SurfaceSphere
+  float sphere_x0_, sphere_y0_, sphere_z0_, sphere_radius_;
+
+  Surface_() {}
+
+  Surface_(Surface *s) {
+    id_ = s->id_;
+    bc_ = s->bc_;
+    name_ = s->name_.c_str();
+
+    if (auto *surf = dynamic_cast<SurfaceXPlane *>(s)) {
+      type = Type::xplane;
+      xplane_x0_ = surf->x0_;
+    } else if (auto *surf = dynamic_cast<SurfaceYPlane *>(s)) {
+      type = Type::yplane;
+      yplane_y0_ = surf->y0_;
+    } else if (auto *surf = dynamic_cast<SurfaceZPlane *>(s)) {
+      type = Type::zplane;
+      zplane_z0_ = surf->z0_;
+    } else if (auto *surf = dynamic_cast<SurfaceSphere *>(s)) {
+      type = Type::sphere;
+      sphere_x0_ = surf->x0_;
+      sphere_y0_ = surf->y0_;
+      sphere_z0_ = surf->z0_;
+      sphere_radius_ = surf->radius_;
+    }
+  }
+};
+
 //==============================================================================
 // Non-member functions
 //==============================================================================

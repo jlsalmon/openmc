@@ -46,7 +46,7 @@ rtDeclareVariable(int, temperature_method, ,);
 rtDeclareVariable(float, log_spacing, ,);
 rtDeclareVariable(float, energy_min_neutron, ,);
 rtDeclareVariable(float, energy_max_neutron, ,);
-rtDeclareVariable(Material_, material, ,);
+rtDeclareVariable(int, use_csg, ,);
 // rtDeclareVariable(Material::ThermalTable, thermal_table, ,);
 
 // rtBuffer<rtBufferId<int,1>, 1> input_buffers;
@@ -60,6 +60,8 @@ rtBuffer<uint64_t> prn_seed_buffer;
 rtBuffer<int> stream_buffer;
 rtBuffer<float3> normal_buffer;
 rtBuffer<Cell_> cell_buffer;
+rtBuffer<Surface_> surface_buffer;
+rtBuffer<Material_> material_buffer;
 rtBuffer<Particle_> particle_buffer;
 rtBuffer<SourceDistribution_> external_sources_buffer;
 

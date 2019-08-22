@@ -115,6 +115,12 @@ struct Material_ {
   int element_[1]; //!< Indices in elements vector
   float atom_density_[1]; //!< Nuclide atom density in [atom/b-cm]
 
+  float density_; //!< Total atom density in [atom/b-cm]
+  float density_gpcc_; //!< Total atom density in [g/cm^3]
+  float volume_ {-1.0}; //!< Volume in [cm^3]
+  bool fissionable_ {false}; //!< Does this material contain fissionable nuclides
+  bool depletable_ {false}; //!< Is the material depletable?
+
   Material_() {}
 
   Material_(Material *m) {
@@ -123,6 +129,12 @@ struct Material_ {
     nuclide_[0] = m->nuclide_[0]; // FIXME support more than one
     // element_[0] = m->element_[0];
     atom_density_[0] = m->atom_density_[0];
+
+    density_ = m->density_;
+    density_gpcc_ = m->density_gpcc_;
+    volume_ = m->volume_;
+    fissionable_ = m->fissionable_;
+    depletable_ = m->depletable_;
   }
 };
 

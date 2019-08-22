@@ -37,10 +37,77 @@ void initialize_device_data() {
   Context context = geometry->context;
   printf("Initialising device data...\n");
 
+  // ===========================================================================
+  // Geometry buffers
+  // ===========================================================================
+
   // Cell buffer
   Cell_ cells[model::cells.size()];
   for (int i = 0; i < model::cells.size(); ++i) {
     cells[i] = Cell_(model::cells[i].get());
+
+    // material_
+    Buffer material_buffer = context->createBuffer(RT_BUFFER_INPUT);
+    material_buffer->setFormat(RT_FORMAT_USER);
+    material_buffer->setElementSize(sizeof(int32_t));
+    material_buffer->setSize(model::cells[i]->material_.size());
+    memcpy(material_buffer->map(), model::cells[i]->material_.data(), model::cells[i]->material_.size() * sizeof(int32_t));
+    material_buffer->unmap();
+
+    // sqrtkT_
+    Buffer sqrtkT_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+    sqrtkT_buffer->setElementSize(sizeof(float));
+    sqrtkT_buffer->setSize(model::cells[i]->sqrtkT_.size());
+    std::vector<float> floats(model::cells[i]->sqrtkT_.size());
+    std::transform(std::begin(model::cells[i]->sqrtkT_), std::end(model::cells[i]->sqrtkT_),
+      std::begin(floats), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(sqrtkT_buffer->map(), floats.data(), model::cells[i]->sqrtkT_.size() * sizeof(float));
+    sqrtkT_buffer->unmap();
+
+    // region_
+    Buffer region_buffer = context->createBuffer(RT_BUFFER_INPUT);
+    region_buffer->setFormat(RT_FORMAT_USER);
+    region_buffer->setElementSize(sizeof(int32_t));
+    region_buffer->setSize(model::cells[i]->region_.size());
+    memcpy(region_buffer->map(), model::cells[i]->region_.data(), model::cells[i]->region_.size() * sizeof(int32_t));
+    region_buffer->unmap();
+
+    // rpn_
+    Buffer rpn_buffer = context->createBuffer(RT_BUFFER_INPUT);
+    rpn_buffer->setFormat(RT_FORMAT_USER);
+    rpn_buffer->setElementSize(sizeof(int32_t));
+    rpn_buffer->setSize(model::cells[i]->rpn_.size());
+    memcpy(rpn_buffer->map(), model::cells[i]->rpn_.data(), model::cells[i]->rpn_.size() * sizeof(int32_t));
+    rpn_buffer->unmap();
+
+    // neighbors_
+    // FIXME: support neighbour lists
+
+    // rotation_
+    Buffer rotation_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+    rotation_buffer->setElementSize(sizeof(float));
+    rotation_buffer->setSize(model::cells[i]->rotation_.size());
+    std::vector<float> floats2(model::cells[i]->rotation_.size());
+    std::transform(std::begin(model::cells[i]->rotation_), std::end(model::cells[i]->rotation_),
+                   std::begin(floats2), [&](const double& value) { return static_cast<float>(value); });
+    memcpy(rotation_buffer->map(), floats2.data(), model::cells[i]->rotation_.size() * sizeof(float));
+    rotation_buffer->unmap();
+
+    // offset_
+    Buffer offset_buffer = context->createBuffer(RT_BUFFER_INPUT);
+    offset_buffer->setFormat(RT_FORMAT_USER);
+    offset_buffer->setElementSize(sizeof(int32_t));
+    offset_buffer->setSize(model::cells[i]->offset_.size());
+    memcpy(offset_buffer->map(), model::cells[i]->offset_.data(), model::cells[i]->offset_.size() * sizeof(int32_t));
+    offset_buffer->unmap();
+
+    cells[i].material_ = material_buffer->getId();
+    cells[i].sqrtkT_ = sqrtkT_buffer->getId();
+    cells[i].region_ = region_buffer->getId();
+    cells[i].rpn_ = rpn_buffer->getId();
+    // cells[i].neighbors_ = neighbors_buffer->getId();
+    cells[i].rotation_ = rotation_buffer->getId();
+    cells[i].offset_ = offset_buffer->getId();
   }
   Buffer cell_buffer = context->createBuffer(RT_BUFFER_INPUT);
   cell_buffer->setFormat(RT_FORMAT_USER);
@@ -50,8 +117,23 @@ void initialize_device_data() {
   cell_buffer->unmap();
   context["cell_buffer"]->set(cell_buffer);
 
+  // if (settings::optix_csg) {
+    // Surface buffer
+    Surface_ surfaces[model::surfaces.size()];
+    for (int i = 0; i < model::surfaces.size(); ++i) {
+      surfaces[i] = Surface_(model::surfaces[i].get());
+    }
+    Buffer surface_buffer = context->createBuffer(RT_BUFFER_INPUT);
+    surface_buffer->setFormat(RT_FORMAT_USER);
+    surface_buffer->setElementSize(sizeof(Surface_));
+    surface_buffer->setSize(model::surfaces.size() * sizeof(Surface_));
+    memcpy(surface_buffer->map(), surfaces, model::surfaces.size() * sizeof(Surface_));
+    surface_buffer->unmap();
+    context["surface_buffer"]->set(surface_buffer);
+  // }
+
   // ===========================================================================
-  // Output buffers
+  // Particle buffers
   // ===========================================================================
 
   // TODO: figure out how big these buffers should be based on the number of
@@ -75,6 +157,46 @@ void initialize_device_data() {
     RT_BUFFER_OUTPUT, RT_FORMAT_USER, static_cast<RTsize>(simulation::work_per_rank));
   secondary_bank_buffer->setElementSize(sizeof(Particle_::Bank_));
   context["secondary_bank_buffer"]->set(secondary_bank_buffer);
+
+  // Particles
+  Buffer particle_buffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_USER);
+  particle_buffer->setElementSize(sizeof(Particle_));
+  particle_buffer->setSize(simulation::work_per_rank);
+  context["particle_buffer"]->setBuffer(particle_buffer);
+
+  // External sources
+  // FIXME: support more than one source and more than one spatial/angle/energy dist
+  SourceDistribution &source = model::external_sources[0];
+  SourceDistribution_ source_;
+
+  SpatialBox_ space_;
+  SpatialBox *space = dynamic_cast<SpatialBox *>(source.space_.get());
+  space_.lower_left_ = Position_ {static_cast<float>(space->lower_left_.x), static_cast<float>(space->lower_left_.y), static_cast<float>(space->lower_left_.z)};
+  space_.upper_right_ = Position_ {static_cast<float>(space->upper_right_.x), static_cast<float>(space->upper_right_.y), static_cast<float>(space->upper_right_.z)};
+  space_.only_fissionable_ = space->only_fissionable_;
+
+  Isotropic_ angle_;
+  Isotropic *angle = dynamic_cast<Isotropic *>(source.angle_.get());
+  angle_.u_ref_ = Direction_ {static_cast<float>(angle->u_ref_.x), static_cast<float>(angle->u_ref_.y), static_cast<float>(angle->u_ref_.z)};
+
+  Watt_ energy_;
+  Watt *energy = dynamic_cast<Watt *>(source.energy_.get());
+  energy_.a_ = static_cast<float>(energy->a_);
+  energy_.b_ = static_cast<float>(energy->b_);
+
+  source_.space_ = space_;
+  source_.angle_ = angle_;
+  source_.energy_ = energy_;
+  Buffer external_sources_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+  external_sources_buffer->setElementSize(sizeof(SourceDistribution_));
+  external_sources_buffer->setSize(1);
+  memcpy(external_sources_buffer->map(), &source_, 1 * sizeof(SourceDistribution_));
+  context["external_sources_buffer"]->setBuffer(external_sources_buffer);
+  external_sources_buffer->unmap();
+
+  // ===========================================================================
+  // Tally buffers
+  // ===========================================================================
 
   // Global absorption tally buffer
   Buffer global_tally_absorption_buffer = context->createBuffer(
@@ -119,6 +241,7 @@ void initialize_device_data() {
   context["energy_max_neutron"]->setFloat(
     static_cast<float>(data::energy_max[static_cast<int>(Particle::Type::neutron)]));
   context["temperature_method"]->setInt(settings::temperature_method);
+  context["use_csg"]->setInt(settings::optix_csg);
 
   // Simulation variables
   // We use a struct inside a single-element buffer here to prevent OptiX
@@ -133,54 +256,22 @@ void initialize_device_data() {
   context["_simulation"]->setBuffer(simulation_buffer);
   simulation_buffer->unmap();
 
-  // Material
-  // FIXME: support more than one material
+
+  // ===========================================================================
+  // Materials  FIXME: support more than one
+  // ===========================================================================
   openmc::Material *material = model::materials[0].get();
   Material_ material_(material);
-  context["material"]->setUserData(sizeof(material_), &material_);
+  Buffer material_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+  material_buffer->setElementSize(sizeof(Material_));
+  material_buffer->setSize(1);
+  memcpy(material_buffer->map(), &material_, 1 * sizeof(Material_));
+  context["material_buffer"]->setBuffer(material_buffer);
+  material_buffer->unmap();
+
 
   // ===========================================================================
-  // Input buffers
-  // ===========================================================================
-
-  // Particles
-  Buffer particle_buffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_USER);
-  particle_buffer->setElementSize(sizeof(Particle_));
-  particle_buffer->setSize(simulation::work_per_rank);
-  context["particle_buffer"]->setBuffer(particle_buffer);
-
-  // External sources
-  // FIXME: support more than one source and more than one spatial/angle/energy dist
-  SourceDistribution &source = model::external_sources[0];
-  SourceDistribution_ source_;
-
-  SpatialBox_ space_;
-  SpatialBox *space = dynamic_cast<SpatialBox *>(source.space_.get());
-  space_.lower_left_ = Position_ {static_cast<float>(space->lower_left_.x), static_cast<float>(space->lower_left_.y), static_cast<float>(space->lower_left_.z)};
-  space_.upper_right_ = Position_ {static_cast<float>(space->upper_right_.x), static_cast<float>(space->upper_right_.y), static_cast<float>(space->upper_right_.z)};
-  space_.only_fissionable_ = space->only_fissionable_;
-
-  Isotropic_ angle_;
-  Isotropic *angle = dynamic_cast<Isotropic *>(source.angle_.get());
-  angle_.u_ref_ = Direction_ {static_cast<float>(angle->u_ref_.x), static_cast<float>(angle->u_ref_.y), static_cast<float>(angle->u_ref_.z)};
-
-  Watt_ energy_;
-  Watt *energy = dynamic_cast<Watt *>(source.energy_.get());
-  energy_.a_ = static_cast<float>(energy->a_);
-  energy_.b_ = static_cast<float>(energy->b_);
-
-  source_.space_ = space_;
-  source_.angle_ = angle_;
-  source_.energy_ = energy_;
-  Buffer external_sources_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
-  external_sources_buffer->setElementSize(sizeof(SourceDistribution_));
-  external_sources_buffer->setSize(1);
-  memcpy(external_sources_buffer->map(), &source_, 1 * sizeof(SourceDistribution_));
-  context["external_sources_buffer"]->setBuffer(external_sources_buffer);
-  external_sources_buffer->unmap();
-
-  // ===========================================================================
-  // Nuclide
+  // Nuclides  FIXME: support more than one
   // ===========================================================================
   Nuclide *nuclide = data::nuclides[0].get();
 
@@ -305,7 +396,7 @@ void initialize_device_data() {
 
 
   // ===========================================================================
-  // Input buffers
+  // RNG buffers
   // ===========================================================================
 
   // Random seed buffers

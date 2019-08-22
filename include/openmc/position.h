@@ -218,6 +218,17 @@ struct Position_ {
     return {-x, -y, -z};
   }
 
+  __host__ __forceinline__ __device__
+  const float& operator[](int i) const {
+    switch (i) {
+      case 0: return x;
+      case 1: return y;
+      case 2: return z;
+      default:
+        printf("ERROR: Index in Position must be between 0 and 2.\n");
+    }
+  }
+
   // Other member functions
 
   //! Dot product of two vectors

@@ -164,6 +164,11 @@ create_fission_sites(Particle* p, int i_nuclide, const Reaction* rx,
   // group.
   double nu_d[MAX_DELAYED_GROUPS] = {0.};
 
+  // printf("bank size: %lu nu: %d nu_t: %f, keff: %f\n", bank.size(), nu, nu_t, simulation::keff);
+  // printf("p.wgt_: %lf, weight: %lf, p->neutron_xs_[i_nuclide].nu_fission: %lf, p->neutron_xs_[i_nuclide].total: %lf \n",
+  //   p->wgt_, weight, p->neutron_xs_[i_nuclide].nu_fission, p->neutron_xs_[i_nuclide].total);
+
+
   p->fission_ = true;
   for (int i = 0; i < nu; ++i) {
     // Create new bank site and get reference to last element

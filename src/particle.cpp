@@ -226,6 +226,9 @@ Particle::transport()
     // Select smaller of the two distances
     double distance = std::min(boundary.distance, d_collision);
 
+    // printf("boundary.distance=%f\n", boundary.distance);
+    // printf("d_collision=%f\n", d_collision);
+
     // Advance particle
     for (int j = 0; j < n_coord_; ++j) {
       coord_[j].r += distance * coord_[j].u;

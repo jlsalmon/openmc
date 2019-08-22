@@ -224,6 +224,9 @@ parse_command_line(int argc, char* argv[])
       } else if (arg == "--no-triangle-api") {
         settings::use_tri_api = false;
 
+      } else if (arg == "--optix-csg") {
+        settings::optix_csg = true;
+
       } else {
         std::cerr << "Unknown option: " << argv[i] << '\n';
         print_usage();

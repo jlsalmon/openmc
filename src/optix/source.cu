@@ -54,21 +54,26 @@ RT_PROGRAM void sample_source() {
         // auto space_box = dynamic_cast<SpatialBox*>(space_.get()); // FIXME: support other types of source
         // if (space_box) {
           if (source.space_.only_fissionable_) {
-            // FIXME: support multiple materials
             // Determine material
-            // const auto& c = model::cells[cell_index];
-            // auto mat_index = c->material_.size() == 1
-            //                  ? c->material_[0] : c->material_[instance];
-            //
-            // if (mat_index == MATERIAL_VOID) {
-            //   found = false;
-            // } else {
-            //   if (!model::materials[mat_index]->fissionable_) found = false;
-            // }
-            rtPrintf("only_fissionable\n");
-            rtPrintf("cell_index: %d\n", cell_index);
-            if (cell_index == 0) { // This index is zero based
-              found = false; // FIXME: support multiple cells
+            if (use_csg) {
+              const auto &c = cell_buffer[cell_index];
+              auto mat_index = c.material_.size() == 1
+                               ? c.material_[0] : c.material_[instance];
+
+              if (mat_index == MATERIAL_VOID) {
+                found = false;
+              } else {
+                if (!material_buffer[mat_index].fissionable_) found = false;
+              }
+            }
+
+            else {
+              // FIXME: support multiple materials
+              rtPrintf("only_fissionable\n");
+              rtPrintf("cell_index: %d\n", cell_index);
+              if (cell_index == 0) { // This index is zero based
+                found = false; // FIXME: support multiple cells
+              }
             }
           }
         // }

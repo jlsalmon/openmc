@@ -41,10 +41,10 @@ void _inelastic_scatter(const Nuclide_& nuc, const Reaction_& rx, Particle_& p)
   float E;
   float mu;
   // rx.products_[0].sample(E_in, E, mu);
-  rtPrintf("p.E_ before sampling reaction product: %f\n", p.E_);
+  // rtPrintf("p.E_ before sampling reaction product: %f\n", p.E_);
   _sample_reaction_product(rx.products_[0], E_in, E, mu);
-  rtPrintf("p.E_ after sampling reaction product: %f\n", p.E_);
-  rtPrintf("E before: %f\n", E);
+  // rtPrintf("p.E_ after sampling reaction product: %f\n", p.E_);
+  // rtPrintf("E before: %f\n", E);
 
   // if scattering system is in center-of-mass, transfer cosine of scattering
   // angle and outgoing energy from CM to LAB
@@ -60,9 +60,9 @@ void _inelastic_scatter(const Nuclide_& nuc, const Reaction_& rx, Particle_& p)
     mu = mu*sqrtf(E_cm/E) + 1.0f/(A+1.0f) * sqrtf(E_in/E);
   }
 
-  rtPrintf("p.E_ after outgoing energy in lab: %f\n", p.E_);
-  rtPrintf("E_in: %f\n", E_in);
-  rtPrintf("E after: %f\n", E);
+  // rtPrintf("p.E_ after outgoing energy in lab: %f\n", p.E_);
+  // rtPrintf("E_in: %f\n", E_in);
+  // rtPrintf("E after: %f\n", E);
 
   // Because of floating-point roundoff, it may be possible for mu to be
   // outside of the range [-1,1). In these cases, we just set mu to exactly -1
@@ -438,10 +438,10 @@ void _scatter(Particle_& p, int i_nuclide)
 
   // Calculate elastic cross section if it wasn't precalculated
   if (micro.elastic == CACHE_INVALID) {
-    rtPrintf("CALCULATING ELASTIC XS\n");
-    rtPrintf("micro.elastic before: %lf\n", micro.elastic);
+    // rtPrintf("CALCULATING ELASTIC XS\n");
+    // rtPrintf("micro.elastic before: %lf\n", micro.elastic);
     _calculate_elastic_xs(nuc, p);
-    rtPrintf("micro.elastic after: %lf\n", micro.elastic);
+    // rtPrintf("micro.elastic after: %lf\n", micro.elastic);
   }
 
   // printf("\n");
@@ -463,12 +463,12 @@ void _scatter(Particle_& p, int i_nuclide)
   // printf("micro.last_sqrtkT: %lf\n", micro.last_sqrtkT);
   // printf("\n");
   //
-  rtPrintf("cutoff: %lf\n", cutoff);
-  rtPrintf("i_temp: %i\n", i_temp);
-  rtPrintf("i_grid: %i\n", i_grid);
+  // rtPrintf("cutoff: %lf\n", cutoff);
+  // rtPrintf("i_temp: %i\n", i_temp);
+  // rtPrintf("i_grid: %i\n", i_grid);
 
   float prob = micro.elastic - micro.thermal;
-  rtPrintf("prob: %lf\n", prob);
+  // rtPrintf("prob: %lf\n", prob);
 
   if (prob > cutoff) {
     // =======================================================================
@@ -506,7 +506,7 @@ void _scatter(Particle_& p, int i_nuclide)
       i = nuc.index_inelastic_scatter_[j];
       ++j;
 
-      rtPrintf("i: %d j: %d\n", i, j);
+      // rtPrintf("i: %d j: %d\n", i, j);
 
       // Check to make sure inelastic scattering reaction sampled
       if (i >= nuc.reactions_.size()) {
@@ -519,20 +519,20 @@ void _scatter(Particle_& p, int i_nuclide)
       // const auto& xs {nuc.reactions_[i].xs_[i_temp]};
       const auto& xs {nuc.reactions_[i].xs_[i_temp]};
       if (i_grid < xs.threshold) {
-        rtPrintf("i_grid %i less than threshold %i\n", i_grid, xs.threshold);
+        // rtPrintf("i_grid %i less than threshold %i\n", i_grid, xs.threshold);
         continue;
       }
 
-      rtPrintf("nuc.reactions_[i]: %p\n", nuc.reactions_[i]);
-      rtPrintf("nuc.reactions_[i].xs_[i_temp]: %p\n", nuc.reactions_[i].xs_[i_temp]);
-      rtPrintf("xs.value[i_grid - xs.threshold]: %lf\n", xs.value_[i_grid - xs.threshold]);
-      rtPrintf("xs.value[i_grid - xs.threshold + 1]: %lf\n", xs.value_[i_grid - xs.threshold + 1]);
+      // rtPrintf("nuc.reactions_[i]: %p\n", nuc.reactions_[i]);
+      // rtPrintf("nuc.reactions_[i].xs_[i_temp]: %p\n", nuc.reactions_[i].xs_[i_temp]);
+      // rtPrintf("xs.value[i_grid - xs.threshold]: %lf\n", xs.value_[i_grid - xs.threshold]);
+      // rtPrintf("xs.value[i_grid - xs.threshold + 1]: %lf\n", xs.value_[i_grid - xs.threshold + 1]);
 
       // add to cumulative probability
       prob += (1.0f - f)*xs.value_[i_grid - xs.threshold] +
               f*xs.value_[i_grid - xs.threshold + 1];
 
-      rtPrintf("prob is now: %lf\n", prob);
+      // rtPrintf("prob is now: %lf\n", prob);
     }
 
     // Perform collision physics for inelastic scattering
@@ -545,7 +545,7 @@ void _scatter(Particle_& p, int i_nuclide)
   p.event_ = EVENT_SCATTER;
 
   // Sample new outgoing angle for isotropic-in-lab scattering
-  const auto& mat = material; // FIXME: {model::materials[p.material_]};
+  const auto& mat = material_buffer[0]; // FIXME: {model::materials[p.material_]};
   // if (!mat->p0_.empty()) { // FIXME: isotropic-in-lab
   //   int i_nuc_mat = mat->mat_nuclide_index_[i_nuclide];
   //   if (mat->p0_[i_nuc_mat]) {
@@ -728,12 +728,16 @@ void _create_fission_sites(Particle_& p, int i_nuclide, const Reaction_& rx)
   // group.
   float nu_d[MAX_DELAYED_GROUPS] = {0.f};
 
+  // printf("bank size: %lu nu: %d nu_t: %f, keff: %f\n", fission_bank_buffer.size(), nu, nu_t, _simulation[0].keff);
+  // printf("p.wgt_: %lf, weight: %lf, p->neutron_xs_[i_nuclide].nu_fission: %lf, p->neutron_xs_[i_nuclide].total: %lf \n",
+  //        p.wgt_, weight, p.neutron_xs_[i_nuclide].nu_fission, p.neutron_xs_[i_nuclide].total);
+
   p.fission_ = true;
   for (int i = 0; i < nu; ++i) {
     // Create new bank site and get reference to last element
     // fission_bank.emplace_back();
     // auto& site {bank.back()};
-    // printf("fission bank size: %lu index: %d\n", fission_bank_buffer.size(), (3 * launch_index) + i);
+    // printf("fission bank size: %lu index: %d nu: %d keff: %f\n", fission_bank_buffer.size(), (3 * launch_index) + i, nu, keff);
     auto &site = fission_bank_buffer[(3 * launch_index) + i];
 
     // Bank source neutrons by copying the particle data
@@ -820,7 +824,7 @@ int _sample_nuclide(const Particle_& p)
   float cutoff = prn() * p.macro_xs_.total;
 
   // Get pointers to nuclide/density arrays
-  const auto& mat = material; // FIXME: {model::materials[p.material_]};
+  const auto& mat = material_buffer[0]; // FIXME: {model::materials[p.material_]};
   int n = 1; // FIXME: mat->nuclide_.size();
 
   float prob = 0.0f;
@@ -962,6 +966,6 @@ void _collision(Particle_& p)
   //   write_message(msg, 1);
   // }
 
-  // printf("%s with %c%c%c%c. Energy = %lf eV.\n", "FIXME" /*FIXME: reaction_name(p.event_mt_)*/,
-  //        nuclide.name_[0], nuclide.name_[1], nuclide.name_[2], nuclide.name_[3], p.E_);
+  rtPrintf("%s with %c%c%c%c. Energy = %lf eV.\n", "FIXME" /*FIXME: reaction_name(p.event_mt_)*/,
+         nuclide.name_[0], nuclide.name_[1], nuclide.name_[2], nuclide.name_[3], p.E_);
 }

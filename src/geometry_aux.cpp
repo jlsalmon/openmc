@@ -39,7 +39,14 @@ void read_geometry_xml()
     geometry->load("geometry.obj");
     model::root_universe = find_root_universe();
 
-    return;
+    // Hacked-in support for CSG on the GPU
+    if (!settings::optix_csg) {
+      return;
+    }
+    model::cells.clear();
+    model::cell_map.clear();
+    model::surfaces.clear();
+    model::surface_map.clear();
   }
 
   // Display output message

@@ -109,7 +109,7 @@ mark_as_advanced(CLEAR CUDA_64_BIT_DEVICE_CODE)
 # wish from the GUI or from ccmake.
 if(NOT PASSED_FIRST_CONFIGURE)
 
-  list(APPEND default_nvcc_flags "--use_fast_math" "-arch sm_75" "-lineinfo" )
+  list(APPEND default_nvcc_flags "--use_fast_math" "-arch sm_75" "-lineinfo" "--expt-relaxed-constexpr" )
 
   if (CUDA_VERSION VERSION_LESS "3.0")
     list(APPEND default_nvcc_flags "--keep")
@@ -255,6 +255,7 @@ set(sources
         src/optix/physics.cu
         src/optix/variables.cu
         src/optix/cell.cu
+        src/optix/surface.cu
         src/optix/math_functions.cu
         src/optix/source.cu
         src/optix/nuclide.cu

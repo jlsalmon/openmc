@@ -215,19 +215,19 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, float sab_frac, Part
       // printf("grid_index_buffer[0]: %i\n", grid_index_buffer[0]);
       // printf("grid_index_buffer[-1]: %i\n", grid_index_buffer[grid.grid_index_size - 1]);
       //
-      rtPrintf("i_log_union: %d\n", i_log_union);
+      // rtPrintf("i_log_union: %d\n", i_log_union);
 
       int i_low  = grid.grid_index[i_log_union];
       int i_high = grid.grid_index[i_log_union + 1] + 1;
 
-      rtPrintf("i_low: %d i_high: %d\n", i_low, i_high);
+      // rtPrintf("i_low: %d i_high: %d\n", i_low, i_high);
 
       // Perform binary search over reduced range
       i_grid = _lower_bound(i_low, i_high, grid.energy, p.E_);
     }
 
-    rtPrintf("i_grid: %d\n", i_grid);
-    rtPrintf("i_temp: %d\n", i_temp);
+    // rtPrintf("i_grid: %d\n", i_grid);
+    // rtPrintf("i_temp: %d\n", i_temp);
     // printf("grid.energy[76399]: %lf\n", grid.energy[76399]);
     // printf("grid.energy[76400]: %lf\n", grid.energy[76400]);
 
@@ -242,10 +242,10 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, float sab_frac, Part
     micro.index_grid = i_grid;
     micro.interp_factor = f;
 
-    rtPrintf("f: %f\n", f);
-    rtPrintf("p.E_: %lf\n", p.E_);
-    rtPrintf("grid.energy[i_grid]: %lf\n", grid.energy[i_grid]);
-    rtPrintf("grid.energy[i_grid + 1]: %lf\n", grid.energy[i_grid + 1]);
+    // rtPrintf("f: %f\n", f);
+    // rtPrintf("p.E_: %lf\n", p.E_);
+    // rtPrintf("grid.energy[i_grid]: %lf\n", grid.energy[i_grid]);
+    // rtPrintf("grid.energy[i_grid + 1]: %lf\n", grid.energy[i_grid + 1]);
 
     // Calculate microscopic nuclide total cross section
     // micro.total = (1.0 - f)*xs(i_grid, XS_TOTAL)
@@ -262,7 +262,7 @@ void _calculate_xs(Nuclide_& n, int i_sab, int i_log_union, float sab_frac, Part
     //        xs[5*0], xs[5*1], xs[5*2],
     //        xs[5*3], xs[5*4], xs[5*5]);
 
-    rtPrintf("nuclide._calculate_xs: micro.total: %lf\n", micro.total);
+    // rtPrintf("nuclide._calculate_xs: micro.total: %lf\n", micro.total);
 
     // Calculate microscopic nuclide absorption cross section
     // micro.absorption = (1.0 - f)*xs(i_grid, XS_ABSORPTION)

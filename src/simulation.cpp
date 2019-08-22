@@ -260,9 +260,6 @@ int openmc_next_batch(int* status)
       auto *fission_bank = static_cast<Particle_::Bank_ *>(fission_bank_buffer->map());
 
       for (int i = 0; i < 3* simulation::work_per_rank; ++i) {
-        // FIXME: by doing this, the "no fission sites banked" error will not be
-        // triggered even if we only do one particle
-
         Particle_::Bank_ &site_ = fission_bank[i];
 
         // Ignore uninitialised fission bank sites

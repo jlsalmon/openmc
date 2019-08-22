@@ -34,14 +34,14 @@ void _sample_reaction_product(const ReactionProduct_& rp, float E_in, float& E_o
     for (int i = 0; i < n; ++i) {
       // Determine probability that i-th energy distribution is sampled
       // prob += rp.applicability_[i](E_in);
-      rtPrintf("rp.applicability_ buffer id: %d\n", rp.applicability_.getId());
+      // rtPrintf("rp.applicability_ buffer id: %d\n", rp.applicability_.getId());
       prob += _tabulated_1d(rp.applicability_[i], E_in);
 
       // If i-th distribution is sampled, sample energy from the distribution
       if (c <= prob) {
-        rtPrintf("E_out before sampling angle energy (1): %f\n", E_out);
+        // rtPrintf("E_out before sampling angle energy (1): %f\n", E_out);
         _sample_angle_energy(rp, i, E_in, E_out, mu);
-        rtPrintf("E_out after sampling angle energy (1): %f\n", E_out);
+        // rtPrintf("E_out after sampling angle energy (1): %f\n", E_out);
         // rp.distribution_[i].sample(E_in, E_out, mu);
         // _sample_uncorrelated_angle_energy(rp.distribution_[i], E_in, E_out, mu);
         break;
@@ -50,9 +50,9 @@ void _sample_reaction_product(const ReactionProduct_& rp, float E_in, float& E_o
   } else {
     // If only one distribution is present, go ahead and sample it
     // rp.distribution_[0].sample(E_in, E_out, mu);
-    rtPrintf("E_out before sampling angle energy (2): %f\n", E_out);
+    // rtPrintf("E_out before sampling angle energy (2): %f\n", E_out);
     _sample_angle_energy(rp, 0, E_in, E_out, mu);
-    rtPrintf("E_out after sampling angle energy (2): %f\n", E_out);
+    // rtPrintf("E_out after sampling angle energy (2): %f\n", E_out);
     // _sample_uncorrelated_angle_energy(rp.distribution_[0], E_in, E_out, mu);
   }
 }

@@ -436,6 +436,7 @@ BoundaryInfo distance_to_boundary(Particle* p)
       }
     }
   }
+  // printf("dist_to_boundary: dist=%f, surface=%d\n", info.distance, info.surface_index);
   return info;
 }
 

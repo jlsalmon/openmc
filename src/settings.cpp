@@ -44,6 +44,7 @@ bool confidence_intervals    {false};
 bool create_fission_neutrons {true};
 bool dagmc                   {false};
 bool optix                   {false};
+bool optix_csg               {false};
 bool entropy_on              {false};
 bool legendre_to_tabular     {true};
 bool output_summary          {true};
@@ -226,6 +227,10 @@ void read_settings_xml()
   // OptiX geometry check
   if (check_for_node(root, "optix")) {
     optix = get_node_value_bool(root, "optix");
+  }
+
+  if (check_for_node(root, "optix_csg")) {
+    optix_csg = get_node_value_bool(root, "optix_csg");
   }
 
 #ifndef DAGMC

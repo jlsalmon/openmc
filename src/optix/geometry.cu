@@ -17,8 +17,8 @@ bool _find_cell_inner(Particle_& p, const NeighborList* neighbor_list)
 {
   int root_universe = 0; // FIXME
   int num_cells = 2; // FIXME
-  int num_materials = 1; // FIXME
-  int num_sqrtkT = 1; // FIXME
+  // int num_materials = 1; // FIXME
+  // int num_sqrtkT = 1; // FIXME
 
   // Find which cell of this universe the particle is in.  Use the neighbor list
   // to shorten the search if one was provided.
@@ -67,7 +67,15 @@ bool _find_cell_inner(Particle_& p, const NeighborList* neighbor_list)
       Position_ r {p.r_local()};
       Direction_ u {p.u_local()};
       auto surf = p.surface_;
-      if (/*model::cells[i_cell]->*/_contains(c.id_, r, u, surf)) {
+
+      bool contains;
+      if (use_csg) {
+        contains = _csg_contains(c, r, u, surf);
+      } else {
+        contains = _rt_contains(c, r, u, surf);
+      }
+
+      if (contains) {
         p.coord_[p.n_coord_-1].cell = i_cell;
         found = true;
         break;
@@ -91,10 +99,9 @@ bool _find_cell_inner(Particle_& p, const NeighborList* neighbor_list)
       //! Found a material cell which means this is the lowest coord level.
 
       // Find the distribcell instance number.
-      if (num_materials /* FIXME c.material_.size()*/ > 1 || num_sqrtkT /*FIXME c.sqrtkT_.size()*/ > 1) {
+      if (c.material_.size() > 1 || c.sqrtkT_.size() > 1) {
         int offset = 0;
         for (int i = 0; i < p.n_coord_; i++) {
-          // FIXME const auto& c_i {cell_buffer[p.coord_[i].cell] /**model::cells[p.coord_[i].cell]*/};
           const auto& c_i {cell_buffer[p.coord_[i].cell]};
           if (c_i.type_ == FILL_UNIVERSE) {
             offset += c_i.offset_[c.distribcell_index_];
@@ -118,13 +125,13 @@ bool _find_cell_inner(Particle_& p, const NeighborList* neighbor_list)
 
       // Set the material and temperature.
       p.material_last_ = p.material_;
-      if (num_materials /* FIXME c.material_.size()*/ > 1) {
+      if (c.material_.size() > 1) {
         p.material_ = c.material_[p.cell_instance_];
       } else {
         p.material_ = c.material_[0];
       }
       p.sqrtkT_last_ = p.sqrtkT_;
-      if (num_sqrtkT /*FIXME c.sqrtkT_.size()*/ > 1) {
+      if (c.sqrtkT_.size() > 1) {
         p.sqrtkT_ = c.sqrtkT_[p.cell_instance_];
       } else {
         p.sqrtkT_ = c.sqrtkT_[0];
@@ -304,19 +311,31 @@ BoundaryInfo_ _distance_to_boundary(Particle_& p)
 
     // Find the oncoming surface in this cell and the distance to it.
     // auto surface_distance = c.distance(r, u, p.surface_);
-    PerRayData payload = {};
-    optix::Ray ray(make_float3(r.x, r.y, r.z), make_float3(u.x, u.y, u.z), 0, scene_epsilon);
+    if (use_csg) {
+      auto surface_distance = _csg_distance(c, r, u, p.surface_);
+      d_surf = surface_distance.first;
+      level_surf_cross = surface_distance.second;
+    } else {
+      auto surface_distance  = _rt_distance(r, u, p.surface_);
+      d_surf = surface_distance.first;
+      level_surf_cross = surface_distance.second;
+    }
 
-    rtPrintf(">>> dist_to_boundary: rtTrace(origin=(%f, %f, %f), direction=(%f, %f, %f))\n",
-             ray.origin.x, ray.origin.y, ray.origin.z,
-             ray.direction.x, ray.direction.y, ray.direction.z);
-    rtTrace(top_object, ray, payload);
+    // PerRayData payload = {};
+    // optix::Ray ray(make_float3(r.x, r.y, r.z), make_float3(u.x, u.y, u.z), 0, scene_epsilon);
+    //
+    // rtPrintf(">>> dist_to_boundary: rtTrace(origin=(%f, %f, %f), direction=(%f, %f, %f))\n",
+    //          ray.origin.x, ray.origin.y, ray.origin.z,
+    //          ray.direction.x, ray.direction.y, ray.direction.z);
+    // rtTrace(top_object, ray, payload);
+    //
+    // // printf(">>> _distance_to_boundary(origin=(%f, %f, %f), direction=(%f, %f, %f))\n",
+    // //        r.x, r.y, r.z, u.x, u.y, u.z);
+    //
+    // d_surf = payload.intersection_distance;
+    // level_surf_cross = payload.surface_id;
 
-    // printf(">>> _distance_to_boundary(origin=(%f, %f, %f), direction=(%f, %f, %f))\n",
-    //        r.x, r.y, r.z, u.x, u.y, u.z);
 
-    d_surf = payload.intersection_distance;
-    level_surf_cross = payload.surface_id;
 
     // Find the distance to the next lattice tile crossing.
     // if (p->coord_[i].lattice != C_NONE) { // FIXME: lattice
@@ -388,5 +407,7 @@ BoundaryInfo_ _distance_to_boundary(Particle_& p)
       }
     }
   }
+
+  rtPrintf(">>> dist_to_boundary: dist=%f, surface=%d\n", info.distance, info.surface_index);
   return info;
 }

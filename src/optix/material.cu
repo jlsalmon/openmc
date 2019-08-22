@@ -21,11 +21,11 @@ void _calculate_neutron_xs(Particle_& p)
   int neutron = static_cast<int>(Particle::Type::neutron);
   int i_grid = logf(p.E_/energy_min_neutron)/log_spacing;
 
-  rtPrintf("p.E_: %lf, energy_min_neutron: %f, log_spacing: %f\n", p.E_, energy_min_neutron, log_spacing);
-  rtPrintf("p.E_/energy_min_neutron %f\n", p.E_/energy_min_neutron);
-  rtPrintf("logf(p.E_/energy_min_neutron) %f\n", log(p.E_/energy_min_neutron));
-  rtPrintf("logf(p.E_/energy_min_neutron)/log_spacing %f\n", log(p.E_/energy_min_neutron)/log_spacing);
-  rtPrintf("i_grid %i\n", i_grid);
+  // rtPrintf("p.E_: %lf, energy_min_neutron: %f, log_spacing: %f\n", p.E_, energy_min_neutron, log_spacing);
+  // rtPrintf("p.E_/energy_min_neutron %f\n", p.E_/energy_min_neutron);
+  // rtPrintf("logf(p.E_/energy_min_neutron) %f\n", log(p.E_/energy_min_neutron));
+  // rtPrintf("logf(p.E_/energy_min_neutron)/log_spacing %f\n", log(p.E_/energy_min_neutron)/log_spacing);
+  // rtPrintf("i_grid %i\n", i_grid);
 
   // Determine if this material has S(a,b) tables
   bool check_sab = false; // (m.thermal_tables_.size() > 0); FIXME: support thermal tables
@@ -68,7 +68,7 @@ void _calculate_neutron_xs(Particle_& p)
     // CALCULATE MICROSCOPIC CROSS SECTION
 
     // Determine microscopic cross sections for this nuclide
-    int i_nuclide = material.nuclide_[i];
+    int i_nuclide = material_buffer[0].nuclide_[i];
 
     // Calculate microscopic cross section for this nuclide
     const auto& micro {p.neutron_xs_[i_nuclide]};
@@ -87,7 +87,7 @@ void _calculate_neutron_xs(Particle_& p)
     // ADD TO MACROSCOPIC CROSS SECTION
 
     // Copy atom density of nuclide in material
-    float atom_density = material.atom_density_[i];
+    float atom_density = material_buffer[0].atom_density_[i];
     // printf("atom density: %lf\n", atom_density);
     // printf("micro.total: %lf\n", micro.total);
     // printf("micro.absorption: %lf\n", micro.absorption);

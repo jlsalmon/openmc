@@ -391,7 +391,9 @@ void _transport(Particle_ &p) {
 
     // Select smaller of the two distances
     float distance = fminf(boundary.distance, d_collision);
-    // printf("d_collision=%f\n", d_collision);
+
+    rtPrintf("boundary.distance=%f\n", boundary.distance);
+    rtPrintf("d_collision=%f\n", d_collision);
 
     // Advance particle
     for (int j = 0; j < p.n_coord_; ++j) {
